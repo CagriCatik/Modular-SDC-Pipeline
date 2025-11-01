@@ -75,6 +75,7 @@ class LiveDashboard(PipelineObserver):
         ax_lanes.set_ylabel("y [px]")
         ax_lanes.set_xlim(0, 95)
         ax_lanes.set_ylim(95, 0)
+        ax_lanes.set_aspect("equal", adjustable="box")
         (left_line,) = ax_lanes.plot([], [], color="#1f77b4", label="Left lane")
         (right_line,) = ax_lanes.plot([], [], color="#ff7f0e", label="Right lane")
         (way_line,) = ax_lanes.plot([], [], marker="o", color="#2ca02c", label="Waypoints")
@@ -85,6 +86,7 @@ class LiveDashboard(PipelineObserver):
         ax_speed.set_ylabel("Speed [m/s]")
         (actual_line,) = ax_speed.plot([], [], label="Actual")
         (target_line,) = ax_speed.plot([], [], label="Target")
+        ax_speed.axhline(0.0, color="black", linewidth=0.5, linestyle="--")
         ax_speed.legend(loc="upper right")
 
         ax_control.set_title("Control commands")
@@ -94,6 +96,7 @@ class LiveDashboard(PipelineObserver):
         (steer_line,) = ax_control.plot([], [], label="Steer")
         (gas_line,) = ax_control.plot([], [], label="Gas")
         (brake_line,) = ax_control.plot([], [], label="Brake")
+        ax_control.axhline(0.0, color="black", linewidth=0.5, linestyle="--")
         ax_control.legend(loc="upper right")
 
         fig.tight_layout()

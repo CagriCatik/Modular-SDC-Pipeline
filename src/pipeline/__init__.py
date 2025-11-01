@@ -12,6 +12,7 @@ from .interfaces import (
 from .control import LateralControlModule, LongitudinalControlModule
 from .core import ModularPipeline
 from .dashboard import LiveDashboard
+from .telemetry import DashboardInputs, build_observer_step, make_lane_detections
 from .perception import LaneDetectionModule
 from .planning import TargetSpeedPlanningModule, WaypointPlanningModule
 
@@ -30,4 +31,7 @@ __all__ = [
     "LaneDetectionModule",
     "TargetSpeedPlanningModule",
     "WaypointPlanningModule",
+    "DashboardInputs",
+    "build_observer_step",
+    "make_lane_detections",
 ]

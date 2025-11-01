@@ -1,75 +1,118 @@
-import gymnasium as gym
-import numpy as np
-import matplotlib.pyplot as plt
+"""Lateral controller test harness with live dashboard support."""
 
-import sys, pathlib
+from __future__ import annotations
+
+import argparse
+import logging
+
+import numpy as np
+
+import sys
+import pathlib
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 
-
 from lane_detection import LaneDetection
-from waypoint_prediction import waypoint_prediction, target_speed_prediction
 from lateral_control import LateralController
+from waypoint_prediction import target_speed_prediction, waypoint_prediction
+
+try:  # pragma: no cover
+    from .dashboard_utils import (
+        create_dashboard,
+        create_env,
+        extract_speed,
+        load_config,
+        reset_dashboard,
+        update_dashboard,
+    )
+except ImportError:  # pragma: no cover
+    from dashboard_utils import (  # type: ignore
+        create_dashboard,
+        create_env,
+        extract_speed,
+        load_config,
+        reset_dashboard,
+        update_dashboard,
+    )
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
 
-# Initialize environment using gym.make()
-env = gym.make('CarRacing-v3', render_mode='human')
-env.reset()
+def run_episode(*, render_mode: str, throttle: float, show_dashboard: bool, max_steps: int) -> None:
+    config = load_config()
+    env = create_env(config, render_mode=render_mode)
 
-# Define variables
-total_reward = 0.0
-steps = 0
-restart = False
+    lane_detector = LaneDetection(**config.perception.lane_detection.to_kwargs())
+    lateral = LateralController(**config.control.lateral.to_kwargs())
 
-# Initialize modules of the pipeline
-LD_module = LaneDetection()
-LatC_module = LateralController()
+    dashboard = create_dashboard(config, enabled=show_dashboard)
 
-# Initialize extra plot
-fig = plt.figure()
-plt.ion()
-plt.show()
+    observation, info = env.reset()
+    reset_dashboard(dashboard, observation, info)
 
-# Action variables: [steering, gas, brake]
-a = np.array([0.0, 0.0, 0.0])
+    action = np.zeros(3, dtype=np.float32)
+    action[1] = throttle
 
-while True:
-    # Perform step
-    observation, reward, terminated, truncated, info = env.step(a)
-    done = terminated or truncated
+    timestep = config.runtime.timestep_seconds
 
-    # Lane detection
-    lane1, lane2 = LD_module.lane_detection(observation)
+    total_reward = 0.0
+    for step in range(max_steps):
+        observation, reward, terminated, truncated, info = env.step(action)
+        total_reward += reward
 
-    # Waypoint and target_speed prediction
-    waypoints = waypoint_prediction(lane1, lane2)
-    target_speed = target_speed_prediction(waypoints)
+        left_lane, right_lane = lane_detector.lane_detection(observation)
+        waypoints = waypoint_prediction(left_lane, right_lane)
+        target_speed = target_speed_prediction(waypoints)
 
-    # Control with constant gas and no braking
-    # Obtain the speed from the info dictionary if available
-    if 'speed' in info:
-        speed = info['speed']
-    else:
-        # Alternatively, estimate speed or set a default value
-        speed = 0.1  # Replace with appropriate speed estimation if necessary
+        speed = extract_speed(info)
+        action[0] = lateral.stanley(waypoints, speed)
 
-    # Update steering angle using the lateral controller
-    a[0] = LatC_module.stanley(waypoints, speed)
+        update_dashboard(
+            dashboard,
+            observation=observation,
+            action=action,
+            reward=reward,
+            terminated=terminated,
+            truncated=truncated,
+            info=info,
+            step_index=step,
+            speed=speed,
+            timestep=timestep,
+            lanes=(left_lane, right_lane),
+            waypoints=waypoints,
+            target_speed=target_speed,
+        )
 
-    # Update total reward
-    total_reward += reward
+        if step % 10 == 0 or terminated or truncated:
+            logging.info(
+                "step %03d steer=%+.2f speed=%+.2f target=%+.2f reward=%+.2f",
+                step,
+                action[0],
+                speed,
+                target_speed,
+                reward,
+            )
 
-    # Outputs during training
-    if steps % 2 == 0 or done:
-        print("\naction " + str(["{:+0.2f}".format(x) for x in a]))
-        print("target_speed {:+0.2f}".format(target_speed))
-        LD_module.plot_state_lane(observation, steps, fig, waypoints=waypoints)
+        env.render()
+        if terminated or truncated:
+            break
 
-    steps += 1
-    env.render()
+    logging.info("Episode finished at step %d with total reward %.2f", step, total_reward)
 
-    # Check if stop
-    if done or restart or steps >= 600:
-        print("step {} total_reward {:+0.2f}".format(steps, total_reward))
-        break
+    env.close()
 
-env.close()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--no-dashboard", action="store_true")
+    parser.add_argument("--render_mode", default="human")
+    parser.add_argument("--throttle", type=float, default=0.5)
+    parser.add_argument("--max_steps", type=int, default=600)
+    args = parser.parse_args()
+
+    run_episode(
+        render_mode=args.render_mode,
+        throttle=args.throttle,
+        show_dashboard=not args.no_dashboard,
+        max_steps=args.max_steps,
+    )

@@ -1,3 +1,7 @@
+import argparse
+import sys
+import pathlib
+
 import pytest
 
 pytest.importorskip("numpy")
@@ -7,7 +11,6 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
-import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 
 from pipeline import (
@@ -176,3 +179,42 @@ def test_modular_pipeline_runs_with_stub_modules():
     assert reward == pytest.approx(4.5)
 
     pipeline.close()
+
+
+if __name__ == "__main__":
+    try:  # pragma: no cover
+        from .dashboard_utils import (
+            create_dashboard,
+            create_env,
+            load_config,
+        )
+    except ImportError:  # pragma: no cover
+        from dashboard_utils import (  # type: ignore
+            create_dashboard,
+            create_env,
+            load_config,
+        )
+    from modular_pipeline import build_pipeline
+
+    parser = argparse.ArgumentParser(description="Run the modular pipeline with the live dashboard")
+    parser.add_argument("--episodes", type=int, default=1)
+    parser.add_argument("--render_mode", default="human")
+    parser.add_argument("--no-dashboard", action="store_true")
+    args = parser.parse_args()
+
+    config = load_config()
+    env = create_env(config, render_mode=args.render_mode)
+    dashboard = create_dashboard(config, enabled=not args.no_dashboard)
+
+    pipeline = build_pipeline(config, env, enable_dashboard=False)
+    observers = list(pipeline.observers)
+    if dashboard is not None:
+        observers.append(dashboard)
+    pipeline.observers = tuple(observers)
+
+    try:
+        for episode in range(args.episodes):
+            reward = pipeline.run_episode()
+            print(f"episode {episode}\treward {reward:+0.4f}")
+    finally:
+        pipeline.close()

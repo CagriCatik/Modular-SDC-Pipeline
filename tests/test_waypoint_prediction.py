@@ -1,121 +1,161 @@
-import sys
-import pathlib
-import time
+"""Keyboard-controlled waypoint planner harness with live dashboard."""
 
-import gymnasium as gym
+from __future__ import annotations
+
+import argparse
+import logging
+from typing import Dict
+
 import numpy as np
-import matplotlib.pyplot as plt
 import pygame
 
-# Local src imports
+import sys
+import pathlib
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1] / "src"))
+
 from lane_detection import LaneDetection
-from waypoint_prediction import waypoint_prediction, target_speed_prediction
+from waypoint_prediction import target_speed_prediction, waypoint_prediction
 
-# Config
-FPS = 60
-STEER_LEFT = -1.0
-STEER_RIGHT = +1.0
-THROTTLE = +1.0
-BRAKE = 0.8  # in [0,1]
+try:  # pragma: no cover
+    from .dashboard_utils import (
+        create_dashboard,
+        create_env,
+        extract_speed,
+        load_config,
+        reset_dashboard,
+        update_dashboard,
+    )
+except ImportError:  # pragma: no cover
+    from dashboard_utils import (  # type: ignore
+        create_dashboard,
+        create_env,
+        extract_speed,
+        load_config,
+        reset_dashboard,
+        update_dashboard,
+    )
 
-# Env
-env = gym.make("CarRacing-v3", render_mode="human")
-obs, info = env.reset()
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
-# Pygame init (required to receive keyboard events)
-pygame.init()
-pygame.display.set_caption("Keyboard Control - Focus here")
-pygame.display.set_mode((640, 480), pygame.RESIZABLE)
-clock = pygame.time.Clock()
 
-# Pipeline modules
-LD_module = LaneDetection()
-
-# Live plot
-plt.ion()
-fig = plt.figure()
-plt.show(block=False)
-
-# Action vector: [steering (-1..1), gas (0..1), brake (0..1)]
-action = np.array([0.0, 0.0, 0.0], dtype=np.float32)
-
-total_reward = 0.0
-steps = 0
-
-running = True
-restart = False
-
-def soft_center_steer(a, k=0.90):
-    # Optional steering recentring for smoother driving
-    a[0] *= k
-
-while running:
-    # Event handling
+def process_events(action: np.ndarray, key_bindings: Dict[str, int]) -> bool:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            running = False
+            return True
+        if event.type == pygame.KEYDOWN and event.key == key_bindings["quit"]:
+            return True
+    return False
 
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                running = False
-            elif event.key == pygame.K_r:
-                restart = True
-            elif event.key == pygame.K_LEFT:
-                action[0] = STEER_LEFT
-            elif event.key == pygame.K_RIGHT:
-                action[0] = STEER_RIGHT
-            elif event.key == pygame.K_UP:
-                action[1] = THROTTLE
-            elif event.key == pygame.K_DOWN:
-                action[2] = BRAKE
 
-        elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_LEFT and action[0] == STEER_LEFT:
-                action[0] = 0.0
-            elif event.key == pygame.K_RIGHT and action[0] == STEER_RIGHT:
-                action[0] = 0.0
-            elif event.key == pygame.K_UP:
-                action[1] = 0.0
-            elif event.key == pygame.K_DOWN:
-                action[2] = 0.0
+def update_action(action: np.ndarray, key_bindings: Dict[str, int]) -> None:
+    keys = pygame.key.get_pressed()
+    action[0] = 0.0
+    if keys[key_bindings["left"]]:
+        action[0] = -1.0
+    if keys[key_bindings["right"]]:
+        action[0] = +1.0
+    action[1] = float(keys[key_bindings["gas"]])
+    action[2] = float(keys[key_bindings["brake"]]) * 0.8
 
-    # Optional steering recentering for smoother control
-    soft_center_steer(action, k=0.90)
 
-    # Step environment
-    obs, reward, terminated, truncated, info = env.step(action)
-    env.render()
+def run_episode(
+    *,
+    render_mode: str,
+    show_dashboard: bool,
+    fps: int,
+    key_bindings: Dict[str, int],
+) -> None:
+    config = load_config()
+    env = create_env(config, render_mode=render_mode)
 
-    # Perception and planning pipeline
-    lane1, lane2 = LD_module.lane_detection(obs)
-    waypoints = waypoint_prediction(lane1, lane2)
-    target_speed = target_speed_prediction(waypoints)
+    lane_detector = LaneDetection(**config.perception.lane_detection.to_kwargs())
+    dashboard = create_dashboard(config, enabled=show_dashboard)
 
-    # Accounting
-    total_reward += reward
+    observation, info = env.reset()
+    reset_dashboard(dashboard, observation, info)
 
-    if steps % 2 == 0:
-        print("\naction " + str(["{:+0.2f}".format(x) for x in action]))
-        print("step {} total_reward {:+0.2f}".format(steps, total_reward))
-        LD_module.plot_state_lane(obs, steps, fig, waypoints=waypoints)
-        plt.pause(0.001)
+    pygame.init()
+    pygame.display.set_caption("Waypoint planner harness - focus window for keyboard input")
+    pygame.display.set_mode((640, 480), pygame.HIDDEN)
+    clock = pygame.time.Clock()
 
-    steps += 1
+    action = np.zeros(3, dtype=np.float32)
+    timestep = config.runtime.timestep_seconds
 
-    # Episode end or manual restart
-    done = terminated or truncated
-    if done or restart or steps >= 600:
-        print("episode_end step {} total_reward {:+0.2f}".format(steps, total_reward))
-        obs, info = env.reset()
-        total_reward = 0.0
-        steps = 0
-        restart = False
-        action[:] = 0.0
+    total_reward = 0.0
+    steps = 0
+    done = False
 
-    # Frame rate control
-    clock.tick(FPS)
+    while not done:
+        if process_events(action, key_bindings):
+            break
+        update_action(action, key_bindings)
 
-# Cleanup
-pygame.quit()
-env.close()
+        observation, reward, terminated, truncated, info = env.step(action)
+        total_reward += reward
+
+        left_lane, right_lane = lane_detector.lane_detection(observation)
+        waypoints = waypoint_prediction(left_lane, right_lane)
+        target_speed = target_speed_prediction(waypoints)
+
+        speed = extract_speed(info)
+
+        update_dashboard(
+            dashboard,
+            observation=observation,
+            action=action,
+            reward=reward,
+            terminated=terminated,
+            truncated=truncated,
+            info=info,
+            step_index=steps,
+            speed=speed,
+            timestep=timestep,
+            lanes=(left_lane, right_lane),
+            waypoints=waypoints,
+            target_speed=target_speed,
+        )
+
+        if steps % 10 == 0 or terminated or truncated:
+            logging.info(
+                "step %03d reward=%+.2f speed=%+.2f target=%+.2f",  # noqa: G004
+                steps,
+                reward,
+                speed,
+                target_speed,
+            )
+
+        env.render()
+        clock.tick(fps)
+
+        steps += 1
+        done = terminated or truncated
+
+    logging.info("Episode finished after %d steps. Total reward: %.2f", steps, total_reward)
+
+    env.close()
+    pygame.quit()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--no-dashboard", action="store_true")
+    parser.add_argument("--render_mode", default="human")
+    parser.add_argument("--fps", type=int, default=60)
+    args = parser.parse_args()
+
+    bindings = {
+        "left": pygame.K_LEFT,
+        "right": pygame.K_RIGHT,
+        "gas": pygame.K_UP,
+        "brake": pygame.K_DOWN,
+        "quit": pygame.K_ESCAPE,
+    }
+
+    run_episode(
+        render_mode=args.render_mode,
+        show_dashboard=not args.no_dashboard,
+        fps=args.fps,
+        key_bindings=bindings,
+    )
