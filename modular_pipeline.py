@@ -1,107 +1,134 @@
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[0] / "src"))
+"""Command-line orchestrator for the Modular SDC pipeline."""
+
+from __future__ import annotations
 
 import argparse
-import numpy as np
-import gymnasium as gym
+import pathlib
+import sys
+from dataclasses import dataclass
+from typing import Callable, Optional, Sequence
 
-from sdc_wrapper import SDC_Wrapper
+import gymnasium as gym
+import numpy as np
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[0] / "src"))
+
 from lane_detection import LaneDetection
-from waypoint_prediction import waypoint_prediction, target_speed_prediction
 from lateral_control import LateralController
 from longitudinal_control import LongitudinalController
+from sdc_wrapper import SDC_Wrapper
+from waypoint_prediction import target_speed_prediction, waypoint_prediction
 
 
-def _action_contract(a, action_space):
-    a = np.asarray(a, dtype=np.float32).reshape(3)
+def _action_contract(action: Sequence[float], action_space) -> np.ndarray:
+    """Clip an action vector to the environment bounds."""
+
+    act = np.asarray(action, dtype=np.float32).reshape(3)
     low = np.asarray(action_space.low, dtype=np.float32)
     high = np.asarray(action_space.high, dtype=np.float32)
-    return np.clip(a, low, high).astype(action_space.dtype, copy=False)
+    return np.clip(act, low, high).astype(action_space.dtype, copy=False)
 
 
 def _reset_with_speed(env, **kwargs):
-    s, info = env.reset(**kwargs)
-    speed = float(info["speed"]) if isinstance(info, dict) and "speed" in info else 0.0
-    return s, speed
+    obs, info = env.reset(**kwargs)
+    speed = float(info.get("speed", 0.0)) if isinstance(info, dict) else 0.0
+    return obs, speed
 
 
-def evaluate(env):
-    for episode in range(5):
-        a = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+@dataclass
+class ModularPipeline:
+    """High-level orchestrator for the perception-planning-control loop."""
+
+    env: gym.Env
+    num_waypoints: int = 6
+    num_waypoints_speed: int = 4
+    max_steps: int = 600
+    timestep_seconds: float = 1.0 / 50.0
+    lane_detection_factory: Callable[[], LaneDetection] = LaneDetection
+    lateral_controller_factory: Callable[[], LateralController] = LateralController
+    longitudinal_controller_factory: Callable[[], LongitudinalController] = LongitudinalController
+
+    def __post_init__(self) -> None:
+        self._lane_detector = self.lane_detection_factory()
+        self._lateral_controller = self.lateral_controller_factory()
+        self._longitudinal_controller = self.longitudinal_controller_factory()
+
+    # ------------------------------------------------------------------
+    # Episode lifecycle
+    # ------------------------------------------------------------------
+
+    def _reset_modules(self) -> None:
+        self._lane_detector = self.lane_detection_factory()
+
+        if hasattr(self._lateral_controller, "reset"):
+            self._lateral_controller.reset()
+        if hasattr(self._longitudinal_controller, "reset"):
+            self._longitudinal_controller.reset()
+
+    def run_episode(self, seed: Optional[int] = None) -> float:
+        """Execute one episode and return the accumulated reward."""
 
         try:
-            s, speed = _reset_with_speed(env)
-        except Exception:
+            obs, speed = _reset_with_speed(self.env, seed=seed)
+        except Exception:  # pragma: no cover - environment initialisation errors
             print("Please note that you can't use the window on the cluster")
             raise
 
-        LD_module = LaneDetection()
-        LatC_module = LateralController()
-        LongC_module = LongitudinalController()
+        self._reset_modules()
 
-        reward_per_episode = 0.0
+        total_reward = 0.0
+        for step in range(self.max_steps):
+            lane_left, lane_right = self._lane_detector.lane_detection(obs)
+            waypoints = waypoint_prediction(
+                lane_left,
+                lane_right,
+                num_waypoints=self.num_waypoints,
+            )
+            target_speed = target_speed_prediction(
+                waypoints,
+                num_waypoints_used=self.num_waypoints_speed,
+            )
 
-        for t in range(600):
-            lane1, lane2 = LD_module.lane_detection(s)
+            steer = self._lateral_controller.stanley(waypoints, speed)
+            gas, brake = self._longitudinal_controller.control(
+                speed,
+                target_speed,
+                dt=self.timestep_seconds,
+            )
 
-            waypoints = waypoint_prediction(lane1, lane2, t)
-            target_speed = target_speed_prediction(waypoints, t)
+            action = _action_contract([steer, gas, brake], self.env.action_space)
+            obs, reward, terminated, truncated, info = self.env.step(action)
 
-            steer = LatC_module.stanley(waypoints, speed)
-            gas, brake = LongC_module.control(speed, target_speed)
+            if isinstance(info, dict) and "speed" in info:
+                speed = float(info["speed"])
 
-            a = _action_contract([steer, gas, brake], env.action_space)
+            total_reward += float(reward)
 
-            s, r, done, trunc, info = env.step(a)
-            speed = float(info["speed"]) if isinstance(info, dict) and "speed" in info else speed
-            reward_per_episode += float(r)
-
-            if done or trunc:
+            if terminated or truncated:
                 break
 
-        print("episode %d \t reward %f" % (episode, reward_per_episode))
+        return float(total_reward)
 
 
-def calculate_score_for_leaderboard(env):
+def evaluate(env, episodes: int = 5) -> None:
+    pipeline = ModularPipeline(env)
+    for episode in range(episodes):
+        reward = pipeline.run_episode()
+        print(f"episode {episode}\t reward {reward:.6f}")
+
+
+def calculate_score_for_leaderboard(env) -> None:
     # DO NOT CHANGE
     seeds = [97657630, 47460391, 22619914, 76925063, 84647422,
              83470445, 77482096, 94017676, 99341122, 58134947]
 
+    pipeline = ModularPipeline(env)
+
     total_reward = 0.0
     for episode, seed in enumerate(seeds):
-        a = np.array([0.0, 0.0, 0.0], dtype=np.float32)
-
-        try:
-            s, speed = _reset_with_speed(env, seed=seed)
-        except Exception:
-            print("Please note that you can't use the window on the cluster")
-            raise
-
-        LD_module = LaneDetection()
-        LatC_module = LateralController()
-        LongC_module = LongitudinalController()
-
-        reward_per_episode = 0.0
-        for t in range(600):
-            lane1, lane2 = LD_module.lane_detection(s)
-
-            waypoints = waypoint_prediction(lane1, lane2, t)
-            target_speed = target_speed_prediction(waypoints, t)
-
-            steer = LatC_module.stanley(waypoints, speed)
-            gas, brake = LongC_module.control(speed, target_speed)
-
-            a = _action_contract([steer, gas, brake], env.action_space)
-
-            s, r, done, trunc, info = env.step(a)
-            speed = float(info["speed"]) if isinstance(info, dict) and "speed" in info else speed
-            reward_per_episode += float(r)
-
-            if done or trunc:
-                break
-
-        print("episode %d \t reward %f" % (episode, reward_per_episode))
-        total_reward += float(np.clip(reward_per_episode, 0.0, np.inf))
+        reward = pipeline.run_episode(seed=seed)
+        print(f"episode {episode}\t reward {reward:.6f}")
+        total_reward += float(np.clip(reward, 0.0, np.inf))
 
     print("---------------------------")
     print(" total score: %f" % (total_reward / len(seeds)))
