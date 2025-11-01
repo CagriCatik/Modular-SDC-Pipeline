@@ -35,4 +35,10 @@ The controller maintains optional histories (`speed_history`,
 | Slippery surfaces | 0.04 | 0.02 | 0.0 | Avoids derivative noise from wheel slip. |
 
 Tune KP first, then KI, and finally KD. Always re-validate using the
-leaderboard seeds in `modular_pipeline.py`.
+leaderboard seeds defined in `config.yml`.
+
+## Configuration hooks
+
+Adjust PID gains, integrator clamp, and actuator saturation via
+`control.longitudinal` in `config.yml`. Reduce `max_gas`/`max_brake` when
+testing hardware-in-the-loop rigs to respect actuator limits.

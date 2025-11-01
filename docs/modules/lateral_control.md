@@ -20,3 +20,9 @@ steering command.
   returns metres per second).
 * Invalid waypoints trigger the previous steering command instead of zero to
   maintain continuity.
+
+## Configuration hooks
+
+Modify Stanley gains through `control.lateral` in `config.yml`. Increase the
+damping constant on noisy tracks or raise the gain constant when the vehicle
+lags behind the centreline.

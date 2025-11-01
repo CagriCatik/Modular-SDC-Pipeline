@@ -11,6 +11,9 @@ starts by resetting the wrapped Gymnasium environment, extracts the initial
 speed from the `info` dictionary, and then iterates until termination or a fixed
 horizon is reached.
 
+The pipeline is parameterised by `config.yml`, which configures the factories
+for perception, planning, and control as well as the simulator wrapper.
+
 ```mermaid
 sequenceDiagram
     participant Env as CarRacing-v3

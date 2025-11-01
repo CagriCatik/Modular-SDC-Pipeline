@@ -41,6 +41,10 @@ python modular_pipeline.py --no_display
 
 Use `--score` to reproduce the leaderboard evaluation protocol.
 
+All module parameters are driven by `config.yml`. Supply `--config <path>` to
+load an alternative YAML file when experimenting with controller or planner
+settings.
+
 ## Documentation map
 
 | Topic | Location |

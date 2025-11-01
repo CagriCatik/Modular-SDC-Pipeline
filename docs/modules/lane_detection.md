@@ -26,3 +26,9 @@ rendered frame.
   oscillations when the road temporarily disappears.
 * `plot_state_lane` is available for debugging; it overlays the predicted lanes
   and optional waypoints on the rendered frame.
+
+## Configuration hooks
+
+Tune this module via `perception.lane_detection` in `config.yml`. Adjust the
+crop (`cut_size`), smoothing, and gradient thresholds to match new lighting or
+track layouts.

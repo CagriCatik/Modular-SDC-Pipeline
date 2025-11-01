@@ -33,8 +33,29 @@ Launch the stack without the on-screen viewer:
 python modular_pipeline.py --no_display
 ```
 
-Pass `--score` to evaluate the ten fixed leaderboard seeds defined in
-`modular_pipeline.py`.
+Pass `--score` to evaluate the leaderboard seeds listed in `config.yml`.
+
+### Configuration-driven tuning
+
+All perception, planning, control, and runtime parameters are declared in
+`config.yml`. Update the YAML file to tune the controllers, change the waypoint
+generation mode, or adjust the simulator wrapper without touching the Python
+code. Use `--config` to point to an alternative configuration file:
+
+```bash
+python modular_pipeline.py --config configs/aggressive.yaml
+```
+
+Key sections include:
+
+| Section | Purpose |
+|---------|---------|
+| `environment` | Gymnasium environment ID, render mode, and wrapper toggles. |
+| `runtime` | Episode horizon and integration timestep. |
+| `perception.lane_detection` | Image-cropping and gradient thresholds for spline extraction. |
+| `planning` | Waypoint smoothing strategy and curvature-based speed model. |
+| `control` | Stanley gains and longitudinal PID terms, including saturation limits. |
+| `evaluation` | Default episode count and leaderboard seed list. |
 
 ### Documentation site
 

@@ -26,5 +26,6 @@ Expected behaviour:
 2. Target speed ramps up on straight sections and drops before sharp turns.
 3. Episode rewards should be positive and stable across seeds.
 
-For regression testing, the helper `calculate_score_for_leaderboard` evaluates 10
-fixed seeds and prints the clipped reward per episode followed by the mean score.
+For regression testing, the helper `calculate_score_for_leaderboard` evaluates
+the seeds specified under `evaluation.score_seeds` in `config.yml` and prints the
+clipped reward per episode followed by the mean score.

@@ -13,6 +13,7 @@ theme:
 nav:
   - Home: index.md
   - System Architecture: architecture.md
+  - Configuration: configuration.md
   - Modules:
       - Lane Detection: modules/lane_detection.md
       - Waypoint & Speed Planning: modules/waypoint_prediction.md
