@@ -1,0 +1,22 @@
+site_name: Modular SDC Pipeline
+site_description: Deterministic reference stack for the CarRacing-v3 simulator
+site_url: https://example.com/
+repo_url: https://github.com/USER/Modular-SDC-Pipeline
+
+theme:
+  name: material
+  features:
+    - navigation.expand
+    - navigation.top
+    - toc.follow
+
+nav:
+  - Home: index.md
+  - Scientific Reference: technical_reference.md
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tasklist
