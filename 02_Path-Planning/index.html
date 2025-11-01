@@ -1,0 +1,868 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Deterministic reference stack for the CarRacing-v3 simulator">
+      
+      
+      
+        <link rel="canonical" href="https://example.com/02_Path-Planning/">
+      
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.23">
+    
+    
+      
+        <title>Path Planning (Scientific Description and Design Rationale) - Modular SDC Pipeline</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.84d31ad4.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#path-planning-scientific-description-and-design-rationale" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Modular SDC Pipeline" class="md-header__button md-logo" aria-label="Modular SDC Pipeline" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Modular SDC Pipeline
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Path Planning (Scientific Description and Design Rationale)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/USER/Modular-SDC-Pipeline" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Modular SDC Pipeline" class="md-nav__button md-logo" aria-label="Modular SDC Pipeline" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Modular SDC Pipeline
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/USER/Modular-SDC-Pipeline" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    System Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Configuration
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Modules
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Modules
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/lane_detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Lane Detection
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/waypoint_prediction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Waypoint & Speed Planning
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/lateral_control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Lateral Control
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/longitudinal_control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Longitudinal Control
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Testing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#abstract" class="md-nav__link">
+    <span class="md-ellipsis">
+      Abstract
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Introduction
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-road-center-waypoint-prediction" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Road Center Waypoint Prediction
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Road Center Waypoint Prediction">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-geometric-motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.1 Geometric Motivation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-discretization-into-waypoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.2 Discretization into Waypoints
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-numerical-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.3 Numerical Considerations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-path-smoothing" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Path Smoothing
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Path Smoothing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-theoretical-background" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.1 Theoretical Background
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-mathematical-interpretation" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.2 Mathematical Interpretation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-implementation-and-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.3 Implementation and Optimization
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-target-speed-prediction" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Target Speed Prediction
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Target Speed Prediction">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-physical-motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.1 Physical Motivation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-curvature-dependent-speed-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.2 Curvature-Dependent Speed Model
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-parameter-significance" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.3 Parameter Significance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-implementation-and-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.4 Implementation and Testing
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-integration-and-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Integration and Evaluation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-scientific-significance" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Scientific Significance
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Conclusion
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="path-planning-scientific-description-and-design-rationale">Path Planning (Scientific Description and Design Rationale)</h1>
+<h2 id="abstract">Abstract</h2>
+<p>Path planning is the cognitive layer of the modular autonomous driving pipeline. It transforms geometric lane information into a <strong>continuous, dynamically feasible trajectory</strong> by computing road-center waypoints, smoothing them through optimization, and assigning a <strong>curvature-dependent target speed</strong>. Unlike reactive control strategies, this approach explicitly formulates the geometry of motion, separating perception from decision-making. The system ensures stable navigation, energy efficiency, and safety under varying road geometries.</p>
+<hr />
+<h2 id="1-introduction">1. Introduction</h2>
+<p>In an autonomous driving stack, path planning bridges <strong>perception</strong> and <strong>control</strong>. It translates the lane geometry derived from vision into actionable spatial and temporal references for the vehicle.
+The planner’s role is to generate a <strong>reference path</strong> that minimizes steering effort and maintains stability, while ensuring that the car remains within the detected lane boundaries.</p>
+<p>This module decomposes into three sequential subproblems:</p>
+<ol>
+<li><strong>Road-center waypoint prediction</strong> – defines a discrete geometric skeleton of the lane center.</li>
+<li><strong>Path smoothing</strong> – regularizes the trajectory to ensure curvature continuity and physical plausibility.</li>
+<li><strong>Target speed prediction</strong> – modulates velocity based on curvature, enforcing safety and comfort.</li>
+</ol>
+<p>This formulation is deterministic, interpretable, and grounded in analytical optimization, adhering to the principles of model-based motion planning.</p>
+<hr />
+<h2 id="2-road-center-waypoint-prediction">2. Road Center Waypoint Prediction</h2>
+<h3 id="21-geometric-motivation">2.1 Geometric Motivation</h3>
+<p>The lane boundaries, represented as parametric splines ( L(s) ) and ( R(s) ), define the feasible driving corridor. The road centerline ( C(s) ) can be estimated as the midpoint between these boundaries:
+[
+C(s) = \frac{L(s) + R(s)}{2}, \quad s \in [0, 1]
+]
+This representation approximates the road’s geometric symmetry and serves as the <strong>nominal path</strong>.</p>
+<hr />
+<h3 id="22-discretization-into-waypoints">2.2 Discretization into Waypoints</h3>
+<p><strong>Step 1: Sampling along spline parameter space</strong>
+Let ( s_0, s_1, ..., s_N ) be <strong>equispaced parameters</strong> in [0, 1]. For each ( s_i ):
+[
+L_i = L(s_i), \quad R_i = R(s_i), \quad C_i = \frac{L_i + R_i}{2}
+]
+The resulting set ( { C_i }_{i=1}^N ) forms a polyline approximating the lane center.</p>
+<p><strong>Step 2: Parameter selection</strong>
+Including ( s_0 = 0 ) ensures that the first waypoint lies immediately ahead of the vehicle. The number of waypoints ( N ) governs the planning horizon—too few reduce path granularity; too many increase computational load without substantial benefit.</p>
+<p><strong>Step 3: Waypoint generation function</strong>
+The function <code>waypoint_prediction()</code> should therefore produce:
+[
+\text{waypoints} = [C_0, C_1, ..., C_N]
+]
+where each ( C_i ) is expressed in vehicle-relative coordinates.</p>
+<hr />
+<h3 id="23-numerical-considerations">2.3 Numerical Considerations</h3>
+<ul>
+<li><strong>Consistency:</strong> The sampling interval in ( s )-space should correspond approximately to uniform spatial distances to maintain constant waypoint density.</li>
+<li><strong>Noise Sensitivity:</strong> Use low-order spline smoothing to mitigate jitter from lane boundary irregularities.</li>
+<li><strong>Validation:</strong> Visual inspection and runtime testing under diverse lighting and curvature conditions ensure stability.</li>
+</ul>
+<p>This stage constructs a geometrically valid path that serves as the baseline for dynamic refinement.</p>
+<hr />
+<h2 id="3-path-smoothing">3. Path Smoothing</h2>
+<h3 id="31-theoretical-background">3.1 Theoretical Background</h3>
+<p>The raw centerline may contain small discontinuities or oscillations due to imperfect perception. Path smoothing reformulates the trajectory as an <strong>energy minimization problem</strong>, seeking a trade-off between fidelity to the lane center and curvature minimization.</p>
+<p>The objective function is defined as:
+[
+\min_{x_1, \ldots, x_N} \sum_i | y_i - x_i |^2 - \beta \sum_n \frac{(x_{n+1} - x_n) \cdot (x_n - x_{n-1})}{|x_{n+1} - x_n| |x_n - x_{n-1}|}
+]
+where:</p>
+<ul>
+<li>( y_i ): raw center points from perception</li>
+<li>( x_i ): optimized waypoints</li>
+<li>( \beta ): curvature weighting coefficient</li>
+</ul>
+<p>The second term approximates the <strong>cosine of the turning angle</strong>, promoting alignment between consecutive segments. Maximizing this cosine value penalizes abrupt direction changes, enforcing <strong>curvature continuity</strong>.</p>
+<hr />
+<h3 id="32-mathematical-interpretation">3.2 Mathematical Interpretation</h3>
+<p>The curvature-related term,
+[
+\kappa_i = 1 - \frac{(x_{i+1} - x_i) \cdot (x_i - x_{i-1})}{|x_{i+1} - x_i| |x_i - x_{i-1}|}
+]
+acts as a discrete analog of the second derivative along the curve, i.e., curvature energy. Minimizing this measure ensures smoother transitions, akin to minimizing <strong>bending energy</strong> in spline theory.</p>
+<p>The balance parameter ( \beta ) controls the trade-off:</p>
+<ul>
+<li>Small ( \beta ): prioritizes lane-center adherence.</li>
+<li>Large ( \beta ): prioritizes geometric smoothness and corner cutting.</li>
+</ul>
+<p>This optimization is conceptually similar to elastic band models in robotics, where the path is treated as a flexible curve constrained by environmental boundaries.</p>
+<hr />
+<h3 id="33-implementation-and-optimization">3.3 Implementation and Optimization</h3>
+<p>The <code>curvature()</code> function should compute the curvature penalty across all consecutive triplets of points. Optimization can be achieved via gradient descent or direct analytical adjustments using local smoothing heuristics.</p>
+<p><strong>Empirical tuning:</strong>
+Begin with ( \beta \in [0.1, 1.0] ) and incrementally adjust based on visual curvature smoothness. Excessive smoothing may lead to boundary violations; insufficient smoothing can result in jerky steering.</p>
+<hr />
+<h2 id="4-target-speed-prediction">4. Target Speed Prediction</h2>
+<h3 id="41-physical-motivation">4.1 Physical Motivation</h3>
+<p>The optimal vehicle speed varies inversely with curvature: tighter turns require slower velocities to maintain lateral stability, while straight paths permit acceleration. This relationship stems from the <strong>centripetal acceleration constraint</strong>:
+[
+a_c = \frac{v^2}{r} \leq a_{\text{max}}
+]
+where ( r ) is the turning radius and ( a_{\text{max}} ) is the tire grip limit. Hence, speed must adapt dynamically to curvature magnitude.</p>
+<hr />
+<h3 id="42-curvature-dependent-speed-model">4.2 Curvature-Dependent Speed Model</h3>
+<p>The target velocity is defined by an exponential decay function:
+[
+v_{\text{target}} = (v_{\max} - v_{\min}) \exp[-K_v \cdot C] + v_{\min}
+]
+where ( C ) is the aggregated curvature measure:
+[
+C = N - 2 - \sum_n \frac{(x_{n+1} - x_n) \cdot (x_n - x_{n-1})}{|x_{n+1} - x_n| |x_n - x_{n-1}|}
+]
+and ( K_v ) determines the sensitivity of speed to curvature.</p>
+<p>This formulation ensures smooth modulation between ( v_{\min} ) and ( v_{\max} ), yielding <strong>velocity continuity</strong> without abrupt acceleration changes.</p>
+<hr />
+<h3 id="43-parameter-significance">4.3 Parameter Significance</h3>
+<ul>
+<li>( v_{\max} ): Upper bound for straight sections (e.g., 60 units).</li>
+<li>( v_{\min} ): Lower bound for sharp turns (e.g., 30 units).</li>
+<li>( K_v ): Exponential curvature gain (default ≈ 4.5).</li>
+</ul>
+<p><strong>Interpretation:</strong>
+When ( C \to 0 ) (straight path), the exponential term approaches 1, driving ( v_{\text{target}} \approx v_{\max} ).
+As ( C ) increases (tight curves), the exponential decays, reducing speed toward ( v_{\min} ).</p>
+<hr />
+<h3 id="44-implementation-and-testing">4.4 Implementation and Testing</h3>
+<p>The <code>target_speed_prediction()</code> function computes curvature across the smoothed waypoints and applies the above equation. Testing should include:</p>
+<ul>
+<li><strong>Straight-line motion:</strong> validate constant high-speed behavior.</li>
+<li><strong>Mild curvature:</strong> ensure smooth deceleration and recovery.</li>
+<li><strong>Sharp corners:</strong> confirm stability through gradual braking.</li>
+</ul>
+<p>Parameter tuning must consider both comfort and safety, ensuring that longitudinal acceleration and jerk remain within physically acceptable limits.</p>
+<hr />
+<h2 id="5-integration-and-evaluation">5. Integration and Evaluation</h2>
+<p>When integrated into the complete modular pipeline, the path planning subsystem outputs:</p>
+<ol>
+<li>A spatial path (set of smoothed waypoints).</li>
+<li>A temporal profile (target velocity along the path).</li>
+</ol>
+<p>These outputs feed directly into <strong>lateral</strong> and <strong>longitudinal control</strong> modules, forming the foundation of a model-based motion planner.</p>
+<p>Quantitative metrics for evaluation include:</p>
+<ul>
+<li><strong>Path smoothness:</strong> curvature variance across waypoints.</li>
+<li><strong>Lateral deviation:</strong> RMS distance from true lane center.</li>
+<li><strong>Speed adaptation:</strong> correlation between curvature and velocity.</li>
+</ul>
+<p>Testing across diverse synthetic tracks establishes generalization and parameter robustness.</p>
+<hr />
+<h2 id="6-scientific-significance">6. Scientific Significance</h2>
+<p>This module exemplifies the <strong>geometric control paradigm</strong> in robotics: decomposing motion into spatial and temporal optimization governed by physical constraints. The explicit curvature penalty connects perceptual geometry to dynamic feasibility, aligning the mathematical path with the vehicle’s dynamic envelope.</p>
+<p>Such deterministic planning frameworks remain crucial in safety-critical contexts where <strong>verifiability and interpretability</strong> outweigh raw adaptability. The combination of spline geometry, discrete curvature optimization, and exponential velocity modulation constitutes a theoretically grounded and computationally efficient solution for real-time autonomous navigation.</p>
+<hr />
+<h2 id="7-conclusion">7. Conclusion</h2>
+<p>The path planning module formalizes the transformation from <strong>detected lanes</strong> to <strong>drivable trajectories</strong>. Through rigorous geometric reasoning, it achieves a balance between adherence to lane structure and dynamic smoothness. The inclusion of curvature-based speed prediction extends spatial reasoning into the temporal domain, enabling motion that is both safe and efficient.</p>
+<p>This scientifically structured approach demonstrates that high-performance autonomous behavior can emerge from principled modeling, optimization, and control—without reliance on black-box learning.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.expand", "navigation.top", "toc.follow"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+    
+  </body>
+</html>
