@@ -12,7 +12,13 @@ import pygame
 import sys
 import pathlib
 
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1] / "src"))
+_PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[1]
+_SRC_ROOT = _PROJECT_ROOT / "src"
+
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+if str(_SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SRC_ROOT))
 
 from lane_detection import LaneDetection
 from waypoint_prediction import target_speed_prediction, waypoint_prediction
