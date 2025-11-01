@@ -1,0 +1,56 @@
+environment:
+  id: CarRacing-v3
+  kwargs:
+    render_mode: human
+  wrapper:
+    remove_score: true
+    return_linear_velocity: true
+
+runtime:
+  max_steps: 600
+  timestep_seconds: 0.02
+
+perception:
+  lane_detection:
+    cut_size: 68
+    spline_smoothness: 10.0
+    gradient_threshold: 14.0
+    distance_maxima_gradient: 3
+
+planning:
+  waypoints:
+    num_waypoints: 6
+    way_type: smooth
+    smoothing_beta: 30.0
+  target_speed:
+    num_waypoints_used: 4
+    max_speed: 30.0
+    min_speed: 15.0
+    curvature_gain: 2.5
+
+control:
+  lateral:
+    gain_constant: 0.0125
+    damping_constant: 0.0125
+  longitudinal:
+    KP: 0.28
+    KI: 0.01
+    KD: 0.02
+    integral_windup_limit: 10.0
+    max_gas: 0.1
+    max_brake: 0.1
+    default_dt: 0.02
+
+evaluation:
+  episodes: 5
+  score_seeds:
+    - 97657630
+    - 47460391
+    - 22619914
+    - 76925063
+    - 84647422
+    - 83470445
+    - 77482096
+    - 94017676
+    - 99341122
+    - 58134947

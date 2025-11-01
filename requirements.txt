@@ -6,3 +6,4 @@ gym-notices>=0.0.8
 pyglet<2.0
 pygame>=2.5
 box2d-py==2.3.5
+PyYAML>=6.0

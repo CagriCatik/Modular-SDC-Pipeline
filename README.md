@@ -1,210 +1,92 @@
-# Modular Pipeline for Self-Driving Cars
+# Modular Self-Driving Car Pipeline
 
-## Overview
+This repository contains a deterministic perception–planning–control stack for
+the Gymnasium `CarRacing-v3` environment. Every component is implemented with
+classical computer-vision and control techniques so that algorithmic behaviour
+remains explainable and reproducible.
 
-This project implements a **rule-based modular pipeline** for autonomous driving using classical computer vision and control theory. The system is structured into four major components:
+## Repository layout
 
-1. **Lane Detection**
-2. **Path Planning**
-3. **Lateral Control**
-4. **Longitudinal Control**
+| Path | Purpose |
+|------|---------|
+| `modular_pipeline.py` | Orchestrator that links the environment, perception, planning, and control modules. |
+| `src/lane_detection.py` | Extracts roadside splines from the rendered RGB frame. |
+| `src/waypoint_prediction.py` | Generates centreline waypoints and computes a curvature-aware target speed. |
+| `src/lateral_control.py` | Stanley lateral controller with damping. |
+| `src/longitudinal_control.py` | PID-based longitudinal controller for throttle/brake. |
+| `docs/` | MkDocs documentation site with architecture notes and module guides. |
+| `.github/workflows/deploy.yml` | GitHub Actions workflow that builds and publishes the documentation site. |
 
-The implementation avoids any learning-based approaches, relying instead on deterministic algorithms built with **NumPy** and **SciPy**. The project serves as an educational and scientific framework for understanding the fundamentals of self-driving systems.
+## Getting started
 
----
+### Python environment
 
-## 1. Setup
-
-Place all Python modules in the project root directory:
-
-```
-lane_detection.py
-waypoint_prediction.py
-lateral_control.py
-longitudinal_control.py
-modular_pipeline.py
-```
-
-Your submission must also include `submission.txt` with author and parameter information.
-
-The system is tested on the **TCML cluster** using a **Singularity container**. Ensure that your code runs within this environment without additional package installations.
-
-Command to execute in the cluster:
-
-```
-singularity exec /path/to/singularity/sdc_gym_amd64.simg python3 modular_pipeline.py --score
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
----
+Launch the stack without the on-screen viewer:
 
-## 2. Lane Detection
-
-### Objective
-
-Detect lane boundaries from the simulator’s camera image and represent them as smooth parametric splines.
-
-### Steps
-
-1. **Edge Detection**
-
-   * Convert the RGB image to grayscale.
-   * Crop the area above the car.
-   * Compute gradient magnitudes and apply a threshold.
-   * Identify local maxima per image row using `scipy.signal.find_peaks()`.
-
-2. **Edge Association**
-
-   * Initialize lane boundaries from the lowest image row.
-   * Propagate lane points by nearest-neighbor search to form continuous left and right boundaries.
-
-3. **Spline Fitting**
-
-   * Fit B-splines using `scipy.interpolate.splprep` and evaluate with `scipy.interpolate.splev`.
-   * Adjust smoothing parameters for robustness.
-
-4. **Testing**
-
-   * Validate using `test_lane_detection.py`.
-   * Tune gradient thresholds, cropping, and spline parameters to minimize failure cases.
-
----
-
-## 3. Path Planning
-
-### Objective
-
-Generate a smooth, drivable trajectory by computing waypoints along the road centerline.
-
-### Steps
-
-1. **Road Center**
-
-   * Evaluate both lane splines at six equally spaced parameter values.
-   * Compute the center point between corresponding left and right spline positions.
-
-2. **Path Smoothing**
-
-   * Optimize waypoints by minimizing curvature while staying near the road center:
-
-     ```
-     minimize Σ|y_i - x_i|^2 - β Σ((x_{n+1} - x_n) · (x_n - x_{n-1})) / (|x_{n+1} - x_n| |x_n - x_{n-1}|)
-     ```
-   * The curvature term encourages smooth, natural cornering.
-
-3. **Target Speed Prediction**
-
-   * Compute target velocity based on path curvature:
-
-     ```
-     v_target = (v_max - v_min) * exp(-K_v * curvature) + v_min
-     ```
-   * Recommended parameters: `v_max = 60`, `v_min = 30`, `K_v = 4.5`.
-
-Test with `test_waypoint_prediction.py` and inspect the resulting paths visually.
-
----
-
-## 4. Lateral Control
-
-### Objective
-
-Control steering to follow the planned path using the **Stanley Controller**.
-
-### Control Law
-
-```
-δ_SC(t) = ψ(t) + arctan(k * d(t) / v(t))
+```bash
+python modular_pipeline.py --no_display
 ```
 
-* ψ(t): orientation error
-* d(t): cross-track error
-* v(t): vehicle speed
-* k: gain parameter (empirically tuned)
+Pass `--score` to evaluate the leaderboard seeds listed in `config.yml`.
 
-### Damping
+### Configuration-driven tuning
 
-Smooth steering transitions to prevent oscillations:
+All perception, planning, control, and runtime parameters are declared in
+`config.yml`. Update the YAML file to tune the controllers, change the waypoint
+generation mode, or adjust the simulator wrapper without touching the Python
+code. Use `--config` to point to an alternative configuration file:
 
-```
-δ(t) = δ_SC(t) - D * (δ_SC(t) - δ(t - 1))
-```
-
-Adjust `D` for stability and responsiveness.
-
-Test with `test_lateral_control.py` to observe steering dynamics.
-
----
-
-## 5. Longitudinal Control
-
-### Objective
-
-Control acceleration and braking to match the target speed using a **PID controller**.
-
-### PID Formulation
-
-```
-e(t) = v_target - v(t)
-u(t) = Kp * e(t) + Kd * [e(t) - e(t-1)] + Ki * Σ e(t_i)
+```bash
+python modular_pipeline.py --config configs/aggressive.yaml
 ```
 
-### Actuator Mapping
+Key sections include:
 
-```
-gas(t)   = max(0, u(t))
-brake(t) = max(0, -u(t))
-```
+| Section | Purpose |
+|---------|---------|
+| `environment` | Gymnasium environment ID, render mode, and wrapper toggles. |
+| `runtime` | Episode horizon and integration timestep. |
+| `perception.lane_detection` | Image-cropping and gradient thresholds for spline extraction. |
+| `planning` | Waypoint smoothing strategy and curvature-based speed model. |
+| `control` | Stanley gains and longitudinal PID terms, including saturation limits. |
+| `evaluation` | Default episode count and leaderboard seed list. |
 
-### Notes
+### Documentation site
 
-* Apply upper limits to the integral term to prevent windup.
-* Tune parameters incrementally:
+The MkDocs site (Material theme) mirrors the repository structure and contains
+architecture diagrams, module deep dives, and testing checklists.
 
-  * Start with `Kp = 0.01`, `Ki = 0`, `Kd = 0`.
-  * Adjust one parameter at a time while observing plots in `test_longitudinal_control.py`.
-
----
-
-## 6. Execution and Evaluation
-
-Each module is executed sequentially within `modular_pipeline.py`.
-During startup, a brief camera zoom may affect visual algorithms; the variable `t` (time since episode start) can be used to mitigate initialization effects.
-
-The evaluation process:
-
-* Models are tested over multiple validation tracks.
-* For each track, reward after 600 frames is computed.
-* Mean reward across all tracks determines performance.
-* Final competition results are based on 100 unseen tracks.
-
-Reward function:
-
-```
-reward = -0.1 per frame + (1000 / N) per tile visited
+```bash
+pip install -r docs/requirements.txt
+mkdocs serve
 ```
 
----
+Browse the documentation at <http://127.0.0.1:8000/> while iterating on the
+codebase.
 
-## 7. Design Philosophy
+## Development guidelines
 
-This pipeline exemplifies the **Sense–Plan–Act** paradigm:
+1. **Respect module contracts** – each module returns NumPy data structures with
+   documented shapes. Review the docs before changing interfaces.
+2. **Reset controller state per episode** – both lateral and longitudinal
+   controllers expose a `reset()` method used by the orchestrator.
+3. **Validate against reference seeds** – `calculate_score_for_leaderboard`
+   ensures regressions are detected quickly.
 
-* **Sense:** Extract structured lane information from raw vision.
-* **Plan:** Generate a geometrically smooth and dynamically feasible path.
-* **Act:** Use feedback control to achieve stable steering and speed regulation.
+## Continuous delivery of docs
 
-Unlike deep learning systems, this modular approach is **transparent, reproducible, and interpretable**, making it ideal for scientific exploration and education in autonomous vehicle engineering.
+The `deploy.yml` workflow builds the MkDocs site on pushes to `main` or manual
+triggers. It installs only the documentation dependencies and publishes the
+static site to the `gh-pages` branch using
+[`peaceiris/actions-gh-pages`](https://github.com/peaceiris/actions-gh-pages).
 
----
+## Licensing
 
-## 8. References
-
-* SciPy Interpolation: [https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.splprep.html](https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.splprep.html)
-* Stanley Controller (DARPA Grand Challenge): [http://isl.ecst.csuchico.edu/DOCS/darpa2005/DARPA%202005%20Stanley.pdf](http://isl.ecst.csuchico.edu/DOCS/darpa2005/DARPA%202005%20Stanley.pdf)
-* PID Control Fundamentals: [https://homepages.inf.ed.ac.uk/mherrman/IVRINVERTED/pdfs/PID_control.pdf](https://homepages.inf.ed.ac.uk/mherrman/IVRINVERTED/pdfs/PID_control.pdf)
-
----
-
-## 9. License
-
-This project is for academic and educational use under the Autonomous Vision Group, University of Tübingen. Redistribution or adaptation should acknowledge the original course materials.
+The code is provided for educational and research purposes. Cite this repository
+when using it in academic work.

@@ -1,0 +1,29 @@
+site_name: Modular SDC Pipeline
+site_description: Deterministic reference stack for the CarRacing-v3 simulator
+site_url: https://example.com/
+repo_url: https://github.com/USER/Modular-SDC-Pipeline
+
+theme:
+  name: material
+  features:
+    - navigation.expand
+    - navigation.top
+    - toc.follow
+
+nav:
+  - Home: index.md
+  - System Architecture: architecture.md
+  - Configuration: configuration.md
+  - Modules:
+      - Lane Detection: modules/lane_detection.md
+      - Waypoint & Speed Planning: modules/waypoint_prediction.md
+      - Lateral Control: modules/lateral_control.md
+      - Longitudinal Control: modules/longitudinal_control.md
+  - Testing: testing.md
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tasklist

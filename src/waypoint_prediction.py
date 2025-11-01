@@ -57,7 +57,11 @@ def _fallback_waypoints(num_waypoints: int = 6) -> np.ndarray:
 # Smoothing objective
 # -------------------------
 
-def smoothing_objective(waypoints_flat: np.ndarray, waypoints_center_flat: np.ndarray, beta: float = 30.0) -> float:
+def smoothing_objective(
+    waypoints_flat: np.ndarray,
+    waypoints_center_flat: np.ndarray,
+    beta: float = 30.0,
+) -> float:
     """
     Objective for path smoothing.
     waypoints_flat: [2*N]
@@ -87,6 +91,7 @@ def waypoint_prediction(
     roadside2_spline: Optional[Tuple],
     num_waypoints: int = 6,
     way_type: str = "smooth",
+    smoothing_beta: float = 30.0,
 ) -> np.ndarray:
     """
     Predict waypoints via two methods:
@@ -127,7 +132,7 @@ def waypoint_prediction(
             res = minimize(
                 smoothing_objective,
                 w0,
-                args=(w0,),                 # FIX: tuple arg
+                args=(w0, smoothing_beta),
                 method="L-BFGS-B",
                 options={"maxiter": 200, "ftol": 1e-6},
             )
