@@ -6,9 +6,12 @@ from .interfaces import (
     PerceptionOutput,
     PipelineContext,
     PlanningState,
+    PipelineObserver,
+    ObserverStep,
 )
 from .control import LateralControlModule, LongitudinalControlModule
 from .core import ModularPipeline
+from .dashboard import LiveDashboard
 from .perception import LaneDetectionModule
 from .planning import TargetSpeedPlanningModule, WaypointPlanningModule
 
@@ -18,9 +21,12 @@ __all__ = [
     "PerceptionOutput",
     "PipelineContext",
     "PlanningState",
+    "PipelineObserver",
+    "ObserverStep",
     "LateralControlModule",
     "LongitudinalControlModule",
     "ModularPipeline",
+    "LiveDashboard",
     "LaneDetectionModule",
     "TargetSpeedPlanningModule",
     "WaypointPlanningModule",

@@ -45,6 +45,10 @@ All module parameters are driven by `config.yml`. Supply `--config <path>` to
 load an alternative YAML file when experimenting with controller or planner
 settings.
 
+Running `python modular_pipeline.py` without `--no_display` launches the live
+dashboard so you can watch the detected lanes, planned waypoints, and velocity
+tracking behaviour evolve over time.
+
 ## Documentation map
 
 | Topic | Location |

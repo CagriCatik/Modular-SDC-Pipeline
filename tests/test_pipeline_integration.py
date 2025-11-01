@@ -14,8 +14,10 @@ from pipeline import (
     ControlCommand,
     LaneDetections,
     ModularPipeline,
+    ObserverStep,
     PerceptionOutput,
     PipelineContext,
+    PipelineObserver,
     PlanningState,
 )
 
@@ -125,11 +127,26 @@ class RecordingLongitudinalControl:
         return command.updated(gas=0.5, brake=0.0)
 
 
+class RecordingObserver(PipelineObserver):
+    def __init__(self):
+        self.reset_calls = 0
+        self.step_records = []
+
+    def on_reset(self, observation, info):
+        self.reset_calls += 1
+        self.reset_shape = observation.shape
+        self.reset_info = dict(info)
+
+    def on_step(self, step: ObserverStep):
+        self.step_records.append((step.context.step_index, float(step.reward)))
+
+
 def test_modular_pipeline_runs_with_stub_modules():
     env = DummyEnv()
     perception = RecordingPerception()
     planning = [RecordingPlanner(), RecordingSpeedPlanner()]
     control = [RecordingLateralControl(), RecordingLongitudinalControl()]
+    observer = RecordingObserver()
 
     pipeline = ModularPipeline(
         env=env,
@@ -138,6 +155,7 @@ def test_modular_pipeline_runs_with_stub_modules():
         control=control,
         max_steps=10,
         timestep_seconds=0.1,
+        observers=[observer],
     )
 
     reward = pipeline.run_episode(seed=123)
@@ -149,6 +167,11 @@ def test_modular_pipeline_runs_with_stub_modules():
     assert perception.process_calls == 5
     assert all(planner.plan_calls == 5 for planner in planning)
     assert all(controller.act_calls == 5 for controller in control)
+
+    assert observer.reset_calls == 1
+    assert observer.reset_shape == env.observation_space.shape
+    assert len(observer.step_records) == 5
+    assert observer.step_records[0][0] == 0
 
     assert reward == pytest.approx(4.5)
 

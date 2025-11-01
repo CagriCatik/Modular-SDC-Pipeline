@@ -176,6 +176,32 @@ class ControlConfig:
 
 
 @dataclass
+class DashboardConfig:
+    enabled: bool = False
+    max_history: int = 200
+
+    @classmethod
+    def from_mapping(cls, data: Optional[Mapping[str, Any]]) -> "DashboardConfig":
+        payload = _as_dict(data)
+        return cls(
+            enabled=bool(payload.get("enabled", cls.enabled)),
+            max_history=int(payload.get("max_history", cls.max_history)),
+        )
+
+
+@dataclass
+class MonitoringConfig:
+    dashboard: DashboardConfig = field(default_factory=DashboardConfig)
+
+    @classmethod
+    def from_mapping(cls, data: Optional[Mapping[str, Any]]) -> "MonitoringConfig":
+        payload = _as_dict(data)
+        return cls(
+            dashboard=DashboardConfig.from_mapping(payload.get("dashboard")),
+        )
+
+
+@dataclass
 class EnvironmentWrapperConfig:
     remove_score: bool = True
     return_linear_velocity: bool = True
@@ -270,6 +296,7 @@ class AppConfig:
     perception: PerceptionConfig = field(default_factory=PerceptionConfig)
     planning: PlanningConfig = field(default_factory=PlanningConfig)
     control: ControlConfig = field(default_factory=ControlConfig)
+    monitoring: MonitoringConfig = field(default_factory=MonitoringConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
 
     @classmethod
@@ -281,6 +308,7 @@ class AppConfig:
             perception=PerceptionConfig.from_mapping(payload.get("perception")),
             planning=PlanningConfig.from_mapping(payload.get("planning")),
             control=ControlConfig.from_mapping(payload.get("control")),
+            monitoring=MonitoringConfig.from_mapping(payload.get("monitoring")),
             evaluation=EvaluationConfig.from_mapping(payload.get("evaluation")),
         )
 

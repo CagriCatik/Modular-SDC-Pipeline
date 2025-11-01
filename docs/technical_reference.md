@@ -128,6 +128,8 @@ All tunable parameters live in `config.yml` and mirror the dataclasses in
 - `planning.target_speed` configures curvature gain and admissible speed range.
 - `control.lateral` and `control.longitudinal` expose the Stanley gains and PID
   coefficients.
+- `monitoring.dashboard` toggles the live Matplotlib dashboard and the length of
+  its rolling history window.
 - `runtime.*` chooses episode horizon and timestep.
 - `environment.*` specifies the Gymnasium environment ID, render mode, and
   wrapper behaviour.
@@ -148,9 +150,30 @@ Automated tests cover module contracts as well as the orchestrator wiring:
   aggregation all operate correctly.
 - `mkdocs build` ensures the documentation renders without warnings.
 
-When integrating with the real simulator, monitor speed traces using the
-longitudinal controller's optional plotting utility and inspect the generated
-waypoints to confirm spline smoothness.
+## Live telemetry and observers
+
+`ModularPipeline` accepts optional observers implementing the
+`PipelineObserver` protocol. An observer receives the full step context
+
+$$
+\Xi_k = \{x_k,\ \mathcal{L}_k,\ \mathcal{P}_k,\ u_k,\ r_k,\ v_k\},
+$$
+
+where $x_k$ is the rendered frame, $\mathcal{L}_k$ the perception output,
+$\mathcal{P}_k$ the planning state, $u_k$ the control command, and $r_k$ the
+reward. The built-in `LiveDashboard` observer (enabled by default) renders this
+stream with four synchronized panes:
+
+1. Observation preview.
+2. Lane boundaries and centreline waypoints.
+3. Target speed $v^*_k$ versus measured velocity $v_k$.
+4. Normalized steering, throttle, and brake commands.
+
+The dashboard is invaluable when tuning controller gains: deviations between
+$v^*_k$ and $v_k$ immediately highlight PID misconfiguration, while steering
+oscillations show up as large gradients in the command trace. Disable the
+dashboard in headless environments via `--no_display` or by setting
+`monitoring.dashboard.enabled` to `false` in `config.yml`.
 
 ## Extensibility guidelines
 

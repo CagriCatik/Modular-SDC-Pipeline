@@ -41,6 +41,11 @@ control:
     max_brake: 0.8
     default_dt: 0.02
 
+monitoring:
+  dashboard:
+    enabled: true
+    max_history: 200
+
 evaluation:
   episodes: 5
   score_seeds:

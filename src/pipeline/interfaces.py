@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any, Dict, Optional, Protocol, runtime_checkable
+from typing import Any, Dict, Mapping, Optional, Protocol, runtime_checkable
 
 import numpy as np
 
@@ -131,4 +131,31 @@ class ControlModule(Protocol):
         context: PipelineContext,
         command: ControlCommand,
     ) -> ControlCommand:
+        ...
+
+
+@dataclass
+class ObserverStep:
+    """Snapshot passed to observers after each environment transition."""
+
+    observation: np.ndarray
+    perception: PerceptionOutput
+    planning: PlanningState
+    command: ControlCommand
+    action: np.ndarray
+    reward: float
+    terminated: bool
+    truncated: bool
+    info: Mapping[str, Any]
+    context: PipelineContext
+
+
+@runtime_checkable
+class PipelineObserver(Protocol):
+    """Optional observers that tap into the modular pipeline lifecycle."""
+
+    def on_reset(self, observation: np.ndarray, info: Mapping[str, Any]) -> None:
+        ...
+
+    def on_step(self, step: ObserverStep) -> None:
         ...

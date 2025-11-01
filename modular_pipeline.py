@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import pathlib
 import sys
+from typing import Optional
 
 import gymnasium as gym
 
@@ -16,6 +17,7 @@ from lateral_control import LateralController
 from longitudinal_control import LongitudinalController
 from pipeline import (
     LaneDetectionModule,
+    LiveDashboard,
     LateralControlModule,
     LongitudinalControlModule,
     ModularPipeline,
@@ -34,7 +36,12 @@ __all__ = [
 ]
 
 
-def build_pipeline(config: AppConfig, env: gym.Env) -> ModularPipeline:
+def build_pipeline(
+    config: AppConfig,
+    env: gym.Env,
+    *,
+    enable_dashboard: Optional[bool] = None,
+) -> ModularPipeline:
     """Create a :class:`ModularPipeline` from configuration and an environment."""
 
     lane_kwargs = config.perception.lane_detection.to_kwargs()
@@ -70,6 +77,15 @@ def build_pipeline(config: AppConfig, env: gym.Env) -> ModularPipeline:
         ),
     ]
 
+    observers = []
+    dashboard_flag = (
+        config.monitoring.dashboard.enabled if enable_dashboard is None else bool(enable_dashboard)
+    )
+    if dashboard_flag:
+        observers.append(
+            LiveDashboard(max_history=config.monitoring.dashboard.max_history)
+        )
+
     return ModularPipeline(
         env=env,
         perception=perception_module,
@@ -77,6 +93,7 @@ def build_pipeline(config: AppConfig, env: gym.Env) -> ModularPipeline:
         control=control_modules,
         max_steps=config.runtime.max_steps,
         timestep_seconds=config.runtime.timestep_seconds,
+        observers=observers,
     )
 
 
@@ -104,7 +121,8 @@ def main() -> None:
         **config.environment.wrapper.to_kwargs(),
     )
 
-    pipeline = build_pipeline(config, env)
+    dashboard_enabled = config.monitoring.dashboard.enabled and not args.no_display
+    pipeline = build_pipeline(config, env, enable_dashboard=dashboard_enabled)
 
     try:
         if args.score:

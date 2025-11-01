@@ -11,6 +11,7 @@ remains explainable and reproducible.
 |------|---------|
 | `modular_pipeline.py` | Command-line entry point that loads configuration and wires together modular stages. |
 | `src/pipeline/` | Interfaces and reusable modules for perception, planning, and control composition. |
+| `src/pipeline/dashboard.py` | Matplotlib live dashboard that visualises perception, planning, and control telemetry. |
 | `src/lane_detection.py` | Extracts roadside splines from the rendered RGB frame. |
 | `src/waypoint_prediction.py` | Generates centreline waypoints and computes a curvature-aware target speed. |
 | `src/lateral_control.py` | Stanley lateral controller with damping. |
@@ -56,6 +57,7 @@ Key sections include:
 | `perception.lane_detection` | Image-cropping and gradient thresholds for spline extraction. |
 | `planning` | Waypoint smoothing strategy and curvature-based speed model. |
 | `control` | Stanley gains and longitudinal PID terms, including saturation limits. |
+| `monitoring.dashboard` | Toggle the live dashboard and configure its rolling history length. |
 | `evaluation` | Default episode count and leaderboard seed list. |
 
 ### Documentation site
@@ -70,6 +72,15 @@ mkdocs serve
 
 Browse the documentation at <http://127.0.0.1:8000/> while iterating on the
 codebase. The same content is published automatically to GitHub Pages.
+
+### Live debugging dashboard
+
+When `monitoring.dashboard.enabled` is `true` (the default), running
+`python modular_pipeline.py` opens a Matplotlib window that updates on every
+environment step. The dashboard overlays detected lanes and planned waypoints,
+plots the commanded steering, throttle, and brake signals, and compares the
+target speed to the measured velocity so that you can verify controller tuning
+in real time. Pass `--no_display` to suppress the dashboard for headless runs.
 
 ## Development guidelines
 

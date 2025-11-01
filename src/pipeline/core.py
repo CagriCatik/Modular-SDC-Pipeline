@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, Optional, Sequence
+from typing import Iterable, Mapping, Optional, Sequence
 
 import gymnasium as gym
 import numpy as np
@@ -15,6 +15,8 @@ from .interfaces import (
     PipelineContext,
     PlanningModule,
     PlanningState,
+    PipelineObserver,
+    ObserverStep,
 )
 
 
@@ -29,10 +31,10 @@ def _action_contract(command: ControlCommand, action_space) -> np.ndarray:
 
 def _reset_with_speed(env: gym.Env, **kwargs):
     obs, info = env.reset(**kwargs)
-    speed = 0.0
-    if isinstance(info, dict):
-        speed = float(info.get("speed", 0.0))
-    return obs, speed
+    if not isinstance(info, Mapping):
+        info = {}
+    speed = float(info.get("speed", 0.0))
+    return obs, info, speed
 
 
 def _iter_modules(*modules: Iterable) -> Iterable:
@@ -53,6 +55,7 @@ class ModularPipeline:
     control: Sequence[ControlModule]
     max_steps: int = 600
     timestep_seconds: float = 1.0 / 50.0
+    observers: Sequence[PipelineObserver] = ()
 
     def _reset_modules(self) -> None:
         for module in _iter_modules(self.perception, self.planning, self.control):
@@ -60,12 +63,15 @@ class ModularPipeline:
 
     def run_episode(self, seed: Optional[int] = None) -> float:
         try:
-            obs, speed = _reset_with_speed(self.env, seed=seed)
+            obs, info, speed = _reset_with_speed(self.env, seed=seed)
         except Exception:  # pragma: no cover - environment init is external
             print("Please note that you can't use the window on the cluster")
             raise
 
         self._reset_modules()
+
+        for observer in self.observers:
+            observer.on_reset(obs, info)
 
         total_reward = 0.0
         for step in range(self.max_steps):
@@ -81,14 +87,35 @@ class ModularPipeline:
                 command = controller.act(plan_state, context, command)
 
             action = _action_contract(command, self.env.action_space)
-            obs, reward, terminated, truncated, info = self.env.step(action)
+            obs_next, reward, terminated, truncated, info = self.env.step(action)
+            if not isinstance(info, Mapping):
+                info = {}
 
-            if isinstance(info, dict) and "speed" in info:
+            step_payload = ObserverStep(
+                observation=obs,
+                perception=perception_result,
+                planning=plan_state,
+                command=command,
+                action=action,
+                reward=float(reward),
+                terminated=bool(terminated),
+                truncated=bool(truncated),
+                info=info,
+                context=context,
+            )
+
+            for observer in self.observers:
+                observer.on_step(step_payload)
+
+            if "speed" in info:
                 speed = float(info["speed"])
 
             total_reward += float(reward)
             if terminated or truncated:
+                obs = obs_next
                 break
+
+            obs = obs_next
 
         return float(total_reward)
 
