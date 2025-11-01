@@ -1,0 +1,8 @@
+numpy>=1.22,<2.0
+scipy>=1.14.1,<1.15
+matplotlib>=3.9,<3.10
+gymnasium
+gym-notices>=0.0.8
+pyglet<2.0
+pygame>=2.5
+box2d-py==2.3.5
