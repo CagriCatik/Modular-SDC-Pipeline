@@ -79,7 +79,7 @@ The configuration file mirrors the pipeline structure:
 | `runtime` | Episode horizon, integration timestep, and random seeds. |
 | `perception.lane_detection` | Crop bounds, blur kernels, Canny thresholds, and spline smoothing. |
 | `planning` | Waypoint count, curvature smoothing weight, and maximum lookahead distance. |
-| `control.lateral` | Stanley gain, damping term, and steering saturation. |
+| `control.lateral` | Stanley gain, damping term, image-centre alignment, and steering saturation. |
 | `control.longitudinal` | PID gains, integral clamp, feed-forward bias, and throttle/brake bounds. |
 | `monitoring.dashboard` | Enable flag, history length, Matplotlib style, and figure layout. |
 | `evaluation` | Episode count, score aggregation strategy, and leaderboard seeds. |

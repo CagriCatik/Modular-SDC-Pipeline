@@ -47,6 +47,8 @@ class LaneDetectionConfig:
 class LateralControllerConfig:
     gain_constant: float = 0.025
     damping_constant: float = 0.0125
+    vehicle_center_x: float = 48.0
+    steering_limit: float = 0.4
 
     @classmethod
     def from_mapping(cls, data: Optional[Mapping[str, Any]]) -> "LateralControllerConfig":
@@ -54,12 +56,16 @@ class LateralControllerConfig:
         return cls(
             gain_constant=float(payload.get("gain_constant", cls.gain_constant)),
             damping_constant=float(payload.get("damping_constant", cls.damping_constant)),
+            vehicle_center_x=float(payload.get("vehicle_center_x", cls.vehicle_center_x)),
+            steering_limit=float(payload.get("steering_limit", cls.steering_limit)),
         )
 
     def to_kwargs(self) -> Dict[str, Any]:
         return {
             "gain_constant": self.gain_constant,
             "damping_constant": self.damping_constant,
+            "vehicle_center_x": self.vehicle_center_x,
+            "steering_limit": self.steering_limit,
         }
 
 

@@ -93,9 +93,12 @@ $$
 $$
 
 where $k_s$ is the gain (`control.lateral.gain_constant`) and $\lambda$ is the
-first-order damping term (`control.lateral.damping_constant`). The command is
-clipped to the simulator's $\pm 0.4$ rad steering limit and rescaled to
-$[-1,1]$ before submission.
+first-order damping term (`control.lateral.damping_constant`). Image-frame
+waypoints $(x_{\text{img}}, y_{\text{img}})$ are rotated into a vehicle-centric
+frame by treating $y_{\text{img}}$ as the forward axis and centring
+$x_{\text{img}}$ around `control.lateral.vehicle_center_x`. The command is
+clipped to `control.lateral.steering_limit` radians (default $\pm 0.4$ rad) and
+rescaled to $[-1,1]$ before submission.
 
 ### Longitudinal PID control
 
@@ -126,7 +129,8 @@ All tunable parameters live in `config.yml` and mirror the dataclasses in
 - `planning.waypoints` sets waypoint count, interpolation model (`way_type`),
   and smoothing weight.
 - `planning.target_speed` configures curvature gain and admissible speed range.
-- `control.lateral` and `control.longitudinal` expose the Stanley gains and PID
+- `control.lateral` exposes the Stanley gains, image-to-vehicle alignment, and
+  steering saturation limit, while `control.longitudinal` contains the PID
   coefficients.
 - `monitoring.dashboard` toggles the live Matplotlib dashboard and the length of
   its rolling history window.

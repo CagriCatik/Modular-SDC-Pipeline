@@ -1,21 +1,28 @@
 import numpy as np
 
 class LateralController:
-    """
-    Stanley-based lateral controller with damping and robust guards.
+    """Stanley-based lateral controller with damping and robust guards."""
 
-    Args:
-        gain_constant: Proportional gain on cross-track error (k in Stanley).
-        damping_constant: First-order damping on steering command to reduce jitter.
+    def __init__(
+        self,
+        gain_constant: float = 0.025,
+        damping_constant: float = 0.0125,
+        vehicle_center_x: float = 48.0,
+        steering_limit: float = 0.4,
+    ) -> None:
+        """Create a lateral controller.
 
-    Notes:
-        - Expects waypoints in vehicle frame: vehicle at origin, heading along +x.
-        - Returns steering action scaled to [-1, 1] assuming env steering limit = 0.4 rad.
-    """
+        Args:
+            gain_constant: Proportional gain on cross-track error (k in Stanley).
+            damping_constant: First-order damping on steering command to reduce jitter.
+            vehicle_center_x: Image column that corresponds to the vehicle centre.
+            steering_limit: Physical steering bound in radians used for scaling to [-1, 1].
+        """
 
-    def __init__(self, gain_constant: float = 0.025, damping_constant: float = 0.0125):
         self.gain_constant = float(gain_constant)
         self.damping_constant = float(damping_constant)
+        self.vehicle_center_x = float(vehicle_center_x)
+        self.steering_limit = float(abs(steering_limit)) if steering_limit != 0 else 0.4
         self.previous_steering_angle = 0.0  # radians
 
     def reset(self) -> None:
@@ -31,21 +38,41 @@ class LateralController:
             and np.isfinite(waypoints).all()
         )
 
+    def _to_vehicle_frame(self, waypoints: np.ndarray) -> np.ndarray:
+        """Rotate image-frame waypoints into the vehicle frame.
+
+        The lane detector returns pixel coordinates where axis 0 is the horizontal image
+        index and axis 1 points forward (down the cropped image). The Stanley controller
+        assumes a vehicle-centric frame with the vehicle heading along +x and lateral
+        offsets on the +y axis. We convert by swapping the axes and centring the lateral
+        coordinate around the vehicle column.
+        """
+
+        x_image = waypoints[0].astype(np.float32, copy=False)
+        y_image = waypoints[1].astype(np.float32, copy=False)
+
+        x_vehicle = y_image  # forward distance increases down the image crop
+        y_vehicle = self.vehicle_center_x - x_image  # positive value means track is left
+
+        return np.vstack([x_vehicle, y_vehicle])
+
     def stanley(self, waypoints: np.ndarray, speed: float) -> float:
         """
         One step of the Stanley controller with damping.
 
         Args:
-            waypoints: array shape [2, N], in vehicle coordinates.
+            waypoints: array shape [2, N] in image coordinates (x columns, y rows).
             speed: current vehicle speed (same units as controller tuning).
 
         Returns:
             Steering command in [-1, 1] assuming +/-0.4 rad physical limit.
         """
+        limit = self.steering_limit if self.steering_limit > 0 else 0.4
+
         # Guard: invalid or empty waypoints -> hold previous command
         if not self._valid_waypoints(waypoints):
             prev = float(self.previous_steering_angle)
-            return float(np.clip(prev, -0.4, 0.4) / 0.4)
+            return float(np.clip(prev, -limit, limit) / limit)
 
         # Numerical guards
         epsilon = 1e-6
@@ -55,10 +82,12 @@ class LateralController:
         # Vehicle at origin, heading along +x
         vehicle_heading = 0.0
 
+        vehicle_frame = self._to_vehicle_frame(waypoints)
+
         # Heading error psi_t from first segment if available
-        if waypoints.shape[1] >= 2:
-            dx = float(waypoints[0, 1] - waypoints[0, 0])
-            dy = float(waypoints[1, 1] - waypoints[1, 0])
+        if vehicle_frame.shape[1] >= 2:
+            dx = float(vehicle_frame[0, 1] - vehicle_frame[0, 0])
+            dy = float(vehicle_frame[1, 1] - vehicle_frame[1, 0])
             path_heading = float(np.arctan2(dy, dx)) if (abs(dx) + abs(dy)) > 0.0 else 0.0
         else:
             path_heading = 0.0
@@ -68,17 +97,9 @@ class LateralController:
         psi_t = (psi_t + np.pi) % (2.0 * np.pi) - np.pi
 
         # Cross-track error d_t from first waypoint
-        dx_error = float(waypoints[0, 0])
-        dy_error = float(waypoints[1, 0])
-        d_abs = float(np.hypot(dx_error, dy_error))
+        lateral_offset = float(vehicle_frame[1, 0])
 
-        # Sign by lateral offset (y>0 -> positive error)
-        sign = 0.0
-        if dy_error > 0.0:
-            sign = 1.0
-        elif dy_error < 0.0:
-            sign = -1.0
-        d_t = d_abs * sign
+        d_t = float(lateral_offset)
 
         # Stanley control law
         delta_sc = psi_t + np.arctan2(self.gain_constant * d_t, v + epsilon)
@@ -89,5 +110,5 @@ class LateralController:
         # Update memory
         self.previous_steering_angle = float(delta)
 
-        # Clip to physical limit 0.4 rad, then rescale to [-1, 1]
-        return float(np.clip(delta, -0.4, 0.4) / 0.4)
+        # Clip to physical limit, then rescale to [-1, 1]
+        return float(np.clip(delta, -limit, limit) / limit)

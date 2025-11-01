@@ -32,6 +32,8 @@ control:
   lateral:
     gain_constant: 0.025
     damping_constant: 0.0125
+    vehicle_center_x: 48.0
+    steering_limit: 0.4
   longitudinal:
     KP: 0.08
     KI: 0.01
