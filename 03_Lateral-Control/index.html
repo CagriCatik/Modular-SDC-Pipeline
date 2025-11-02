@@ -20,7 +20,7 @@
     
     
       
-        <title>Lateral Control of a Vehicle (Scientific Description and Design Rationale) - Modular SDC Pipeline</title>
+        <title>Lateral Control of a Vehicle - Modular SDC Pipeline</title>
       
     
     
@@ -62,7 +62,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#lateral-control-of-a-vehicle-scientific-description-and-design-rationale" class="md-skip">
+        <a href="#lateral-control-of-a-vehicle" class="md-skip">
           Skip to content
         </a>
       
@@ -98,7 +98,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Lateral Control of a Vehicle (Scientific Description and Design Rationale)
+              Lateral Control of a Vehicle
             
           </span>
         </div>
@@ -240,195 +240,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
+      <a href="../technical_reference/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    System Architecture
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../configuration/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Configuration
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    Modules
-    
-  </span>
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            Modules
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../modules/lane_detection/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Lane Detection
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../modules/waypoint_prediction/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Waypoint & Speed Planning
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../modules/lateral_control/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Lateral Control
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../modules/longitudinal_control/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Longitudinal Control
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../testing/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Testing
+    Scientific Reference
     
   </span>
   
@@ -654,7 +471,7 @@
   
 
 
-<h1 id="lateral-control-of-a-vehicle-scientific-description-and-design-rationale">Lateral Control of a Vehicle (Scientific Description and Design Rationale)</h1>
+<h1 id="lateral-control-of-a-vehicle">Lateral Control of a Vehicle</h1>
 <h2 id="abstract">Abstract</h2>
 <p>Lateral control governs the steering dynamics of an autonomous vehicle, ensuring that it follows a planned trajectory with minimal deviation. This section formalizes the <strong>Stanley Controller</strong>, a nonlinear feedback law originally developed for the DARPA Grand Challenge, and its enhancement via <strong>damping control</strong> for improved stability and smoothness. The system’s foundation lies in geometric error minimization and dynamic response shaping, aligning classical control theory with practical vehicle dynamics.</p>
 <hr />
@@ -805,6 +622,31 @@ This slows the steering response without altering steady-state accuracy, improvi
 <p>The <strong>Lateral Control Module</strong> implements a mathematically elegant and empirically robust steering mechanism based on the Stanley Controller, enhanced with damping for dynamic smoothness.</p>
 <p>Through geometric reasoning, bounded nonlinear feedback, and adaptive response shaping, it enables precise path tracking while preserving stability at varying speeds.</p>
 <p>This design demonstrates that deterministic, model-based control laws—rooted in geometry and feedback theory—can achieve high-performance steering behavior in autonomous systems, providing a scientifically grounded alternative to black-box learning controllers.</p>
+<h1 id="lateral-control">Lateral Control</h1>
+<p><code>LateralController</code> implements a Stanley controller with damping to drive the
+steering command.</p>
+<h2 id="control-law">Control law</h2>
+<ul>
+<li>Uses the first segment of the waypoint path to estimate the centreline
+  heading.</li>
+<li>Computes the cross-track error from the nearest waypoint.</li>
+<li>Applies the Stanley formula <code>δ = ψ + arctan(k·d / v)</code> with a small damping term
+  to suppress oscillations at low speed.</li>
+<li>Clamps the output to ±0.4 rad and scales to the <code>[-1, 1]</code> range expected by
+  CarRacing.</li>
+</ul>
+<h2 id="operational-notes">Operational notes</h2>
+<ul>
+<li>Call <code>reset()</code> when starting a new episode to clear the steering memory.</li>
+<li>Provide <code>speed</code> in the same units as the longitudinal controller (the wrapper
+  returns metres per second).</li>
+<li>Invalid waypoints trigger the previous steering command instead of zero to
+  maintain continuity.</li>
+</ul>
+<h2 id="configuration-hooks">Configuration hooks</h2>
+<p>Modify Stanley gains through <code>control.lateral</code> in <code>config.yml</code>. Increase the
+damping constant on noisy tracks or raise the gain constant when the vehicle
+lags behind the centreline.</p>
 
 
 

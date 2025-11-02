@@ -20,7 +20,7 @@
     
     
       
-        <title>Longitudinal Control of a Vehicle (Scientific Description and Design Rationale) - Modular SDC Pipeline</title>
+        <title>Longitudinal Control of a Vehicle - Modular SDC Pipeline</title>
       
     
     
@@ -62,7 +62,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#longitudinal-control-of-a-vehicle-scientific-description-and-design-rationale" class="md-skip">
+        <a href="#longitudinal-control-of-a-vehicle" class="md-skip">
           Skip to content
         </a>
       
@@ -98,7 +98,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Longitudinal Control of a Vehicle (Scientific Description and Design Rationale)
+              Longitudinal Control of a Vehicle
             
           </span>
         </div>
@@ -240,195 +240,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
+      <a href="../technical_reference/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    System Architecture
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../configuration/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Configuration
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    Modules
-    
-  </span>
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            Modules
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../modules/lane_detection/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Lane Detection
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../modules/waypoint_prediction/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Waypoint & Speed Planning
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../modules/lateral_control/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Lateral Control
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../modules/longitudinal_control/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Longitudinal Control
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../testing/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Testing
+    Scientific Reference
     
   </span>
   
@@ -720,7 +537,7 @@
   
 
 
-<h1 id="longitudinal-control-of-a-vehicle-scientific-description-and-design-rationale">Longitudinal Control of a Vehicle (Scientific Description and Design Rationale)</h1>
+<h1 id="longitudinal-control-of-a-vehicle">Longitudinal Control of a Vehicle</h1>
 <h2 id="abstract">Abstract</h2>
 <p>Longitudinal control governs the <strong>forward motion</strong> of an autonomous vehicle by modulating throttle and braking to maintain a target velocity derived from the path planner. This section presents a rigorous, scientific formulation of the <strong>PID (Proportional–Integral–Derivative) controller</strong>, its discrete implementation for digital systems, and tuning strategies for stable and responsive speed control.
 The objective is to minimize velocity tracking error while ensuring comfort, safety, and dynamic stability under variable road and vehicle conditions.</p>
@@ -924,6 +741,70 @@ Through iterative tests, the user can visualize convergence, overshoot, and stea
 <p>The longitudinal control system translates velocity commands into actionable throttle and braking inputs through a <strong>discrete PID controller</strong>. By combining reactive, integrative, and predictive behaviors, it achieves stable speed tracking across diverse driving conditions.</p>
 <p>Scientific rigor in design—proper discretization, anti-windup protection, and gain tuning—ensures both robustness and comfort.
 This module demonstrates how classical control theory, when precisely implemented and tuned, continues to outperform complex learning-based systems in safety-critical tasks requiring <strong>stability, interpretability, and verifiability</strong>.</p>
+<h1 id="longitudinal-control">Longitudinal Control</h1>
+<p><code>LongitudinalController</code> uses a PID regulator to map the target speed to gas and
+brake commands.</p>
+<h2 id="pid-design">PID design</h2>
+<ul>
+<li><strong>Proportional (<code>KP</code>)</strong> – matches the steady-state acceleration to the speed
+  error.</li>
+<li><strong>Integral (<code>KI</code>)</strong> – compensates for drag or road grade; the accumulated error
+  is clamped by <code>integral_windup_limit</code> to avoid overshoot.</li>
+<li><strong>Derivative (<code>KD</code>)</strong> – damps oscillations by reacting to error changes. The
+  implementation guards against division by zero by enforcing a minimum <code>dt</code>.</li>
+</ul>
+<h2 id="command-translation">Command translation</h2>
+<p>The PID output is interpreted as longitudinal force:</p>
+<ul>
+<li>Positive command → throttle, clipped to <code>[0, max_gas]</code> (default 0.8).</li>
+<li>Negative command → brake, clipped to <code>[0, max_brake]</code> (default 0.8).</li>
+<li>Both channels cannot be active simultaneously.</li>
+</ul>
+<h2 id="episode-management">Episode management</h2>
+<p>Call <code>reset()</code> before each episode to clear the integrator and derivative state.
+The controller maintains optional histories (<code>speed_history</code>,
+<code>target_speed_history</code>) that can be plotted for debugging with <code>plot_speed</code>.</p>
+<h2 id="recommended-gains">Recommended gains</h2>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>KP</th>
+<th>KI</th>
+<th>KD</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Default flat track</td>
+<td>0.08</td>
+<td>0.01</td>
+<td>0.02</td>
+<td>Aggressive but stable at 50 Hz.</td>
+</tr>
+<tr>
+<td>High curvature sections</td>
+<td>0.06</td>
+<td>0.02</td>
+<td>0.03</td>
+<td>Slightly more damping to handle rapid slowdowns.</td>
+</tr>
+<tr>
+<td>Slippery surfaces</td>
+<td>0.04</td>
+<td>0.02</td>
+<td>0.0</td>
+<td>Avoids derivative noise from wheel slip.</td>
+</tr>
+</tbody>
+</table>
+<p>Tune KP first, then KI, and finally KD. Always re-validate using the
+leaderboard seeds defined in <code>config.yml</code>.</p>
+<h2 id="configuration-hooks">Configuration hooks</h2>
+<p>Adjust PID gains, integrator clamp, and actuator saturation via
+<code>control.longitudinal</code> in <code>config.yml</code>. Reduce <code>max_gas</code>/<code>max_brake</code> when
+testing hardware-in-the-loop rigs to respect actuator limits.</p>
 
 
 

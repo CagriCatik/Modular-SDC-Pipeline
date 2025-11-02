@@ -10,8 +10,10 @@
       
       
       
-        <link rel="canonical" href="https://example.com/01_Lane-Detection/">
+        <link rel="canonical" href="https://example.com/technical_reference/">
       
+      
+        <link rel="prev" href="..">
       
       
       
@@ -20,7 +22,7 @@
     
     
       
-        <title>Lane Detection Pipeline - Modular SDC Pipeline</title>
+        <title>Scientific Reference - Modular SDC Pipeline</title>
       
     
     
@@ -62,7 +64,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#lane-detection-pipeline" class="md-skip">
+        <a href="#scientific-reference-manual" class="md-skip">
           Skip to content
         </a>
       
@@ -98,7 +100,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Lane Detection Pipeline
+              Scientific Reference
             
           </span>
         </div>
@@ -237,10 +239,32 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../technical_reference/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Scientific Reference
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -251,6 +275,161 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#architectural-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architectural overview
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architectural overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#timing-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Timing model
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#perception-lane-boundary-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      Perception: lane boundary extraction
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#planning-geometric-and-speed-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      Planning: geometric and speed references
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Planning: geometric and speed references">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#waypoint-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Waypoint generation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#target-speed-prediction" class="md-nav__link">
+    <span class="md-ellipsis">
+      Target-speed prediction
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#control-vehicle-dynamics-simplifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      Control: vehicle dynamics simplifications
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Control: vehicle dynamics simplifications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lateral-steering-stanley-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      Lateral steering (Stanley method)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#longitudinal-pid-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      Longitudinal PID control
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration surface
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-and-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verification and testing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#live-telemetry-and-observers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Live telemetry and observers
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extensibility-guidelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extensibility guidelines
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -282,55 +461,19 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#abstract" class="md-nav__link">
+  <a href="#architectural-overview" class="md-nav__link">
     <span class="md-ellipsis">
-      Abstract
+      Architectural overview
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#1-introduction" class="md-nav__link">
-    <span class="md-ellipsis">
-      1. Introduction
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-edge-detection" class="md-nav__link">
-    <span class="md-ellipsis">
-      2. Edge Detection
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. Edge Detection">
+    <nav class="md-nav" aria-label="Architectural overview">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#21-grayscale-conversion-and-cropping" class="md-nav__link">
+  <a href="#timing-model" class="md-nav__link">
     <span class="md-ellipsis">
-      2.1 Grayscale Conversion and Cropping
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#22-gradient-computation" class="md-nav__link">
-    <span class="md-ellipsis">
-      2.2 Gradient Computation
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#23-rowwise-maxima-detection" class="md-nav__link">
-    <span class="md-ellipsis">
-      2.3 Rowwise Maxima Detection
+      Timing model
     </span>
   </a>
   
@@ -342,28 +485,37 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-edge-association" class="md-nav__link">
+  <a href="#perception-lane-boundary-extraction" class="md-nav__link">
     <span class="md-ellipsis">
-      3. Edge Association
+      Perception: lane boundary extraction
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3. Edge Association">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#planning-geometric-and-speed-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      Planning: geometric and speed references
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Planning: geometric and speed references">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#31-initialization-near-the-vehicle" class="md-nav__link">
+  <a href="#waypoint-generation" class="md-nav__link">
     <span class="md-ellipsis">
-      3.1 Initialization Near the Vehicle
+      Waypoint generation
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#32-sequential-boundary-propagation" class="md-nav__link">
+  <a href="#target-speed-prediction" class="md-nav__link">
     <span class="md-ellipsis">
-      3.2 Sequential Boundary Propagation
+      Target-speed prediction
     </span>
   </a>
   
@@ -375,37 +527,28 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-spline-fitting" class="md-nav__link">
+  <a href="#control-vehicle-dynamics-simplifications" class="md-nav__link">
     <span class="md-ellipsis">
-      4. Spline Fitting
+      Control: vehicle dynamics simplifications
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="4. Spline Fitting">
+    <nav class="md-nav" aria-label="Control: vehicle dynamics simplifications">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#41-parametric-representation" class="md-nav__link">
+  <a href="#lateral-steering-stanley-method" class="md-nav__link">
     <span class="md-ellipsis">
-      4.1 Parametric Representation
+      Lateral steering (Stanley method)
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#42-spline-optimization" class="md-nav__link">
+  <a href="#longitudinal-pid-control" class="md-nav__link">
     <span class="md-ellipsis">
-      4.2 Spline Optimization
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#43-practical-considerations" class="md-nav__link">
-    <span class="md-ellipsis">
-      4.3 Practical Considerations
+      Longitudinal PID control
     </span>
   </a>
   
@@ -417,51 +560,36 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-testing-and-validation" class="md-nav__link">
+  <a href="#configuration-surface" class="md-nav__link">
     <span class="md-ellipsis">
-      5. Testing and Validation
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="5. Testing and Validation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#51-experimental-evaluation" class="md-nav__link">
-    <span class="md-ellipsis">
-      5.1 Experimental Evaluation
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#52-parameter-tuning" class="md-nav__link">
-    <span class="md-ellipsis">
-      5.2 Parameter Tuning
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#6-scientific-significance" class="md-nav__link">
-    <span class="md-ellipsis">
-      6. Scientific Significance
+      Configuration surface
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#7-conclusion" class="md-nav__link">
+  <a href="#verification-and-testing" class="md-nav__link">
     <span class="md-ellipsis">
-      7. Conclusion
+      Verification and testing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#live-telemetry-and-observers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Live telemetry and observers
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extensibility-guidelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extensibility guidelines
     </span>
   </a>
   
@@ -486,152 +614,159 @@
   
 
 
-<h1 id="lane-detection-pipeline">Lane Detection Pipeline</h1>
-<h2 id="abstract">Abstract</h2>
-<p>This document presents the scientific and algorithmic design of a <strong>lane detection pipeline</strong> for autonomous driving. The pipeline aims to extract geometric representations of lane boundaries from a simulated camera feed using deterministic, vision-based techniques. The system avoids any learning-based components, relying exclusively on analytical image processing, numerical optimization, and spline modeling. This design ensures interpretability, reproducibility, and full control over each stage of perception.</p>
-<hr />
-<h2 id="1-introduction">1. Introduction</h2>
-<p>Lane detection serves as the <strong>perception front-end</strong> of a modular self-driving system. It provides the spatial foundation for path planning and vehicle control by estimating the left and right lane boundaries in image space and projecting them into a continuous parametric form.</p>
-<p>Unlike deep learning-based methods that infer lane geometry statistically, this pipeline decomposes the problem into three interpretable stages:</p>
+<h1 id="scientific-reference-manual">Scientific Reference Manual</h1>
+<p>The modular self-driving pipeline consists of analytically defined perception,
+planning, and control stages operating on the Gymnasium <code>CarRacing-v3</code>
+simulator. Each stage obeys an explicit interface so that alternative
+algorithms can be swapped in without touching the remaining stack.</p>
+<h2 id="architectural-overview">Architectural overview</h2>
+<div class="highlight"><pre><span></span><code>flowchart LR
+    I[Observation $x_t$] --&gt;|Perception| P[LaneDetectionModule\\n$\mathcal{L}$]
+    P --&gt;|Lanes| W[WaypointPlanningModule\\n$\mathcal{P}_w$]
+    W --&gt;|Waypoints| S[TargetSpeedPlanningModule\\n$\mathcal{P}_v$]
+    S --&gt;|Reference speed| C1[LateralControlModule\\n$\mathcal{C}_\delta$]
+    W --&gt; C1
+    S --&gt; C2[LongitudinalControlModule\\n$\mathcal{C}_a$]
+    C1 --&gt; A[Action vector $u_t$]
+    C2 --&gt; A
+    A --&gt; E[Gymnasium environment]
+    E --&gt;|reward, speed| M[ModularPipeline]
+    M --&gt;|next observation| I
+</code></pre></div>
+<p>At runtime the <code>ModularPipeline</code> orchestrator (see <code>modular_pipeline.py</code>)
+drives these modules according to the configuration loaded from <code>config.yml</code>.</p>
+<h3 id="timing-model">Timing model</h3>
+<p>Episodes run at a configurable discrete timestep $\Delta t$ (default
+$1/50\,\text{s}$). For step index $k$, the pipeline evaluates modules with the
+context</p>
+<p>$$
+\mathcal{C}_k = {k,\ v_k,\ \Delta t},
+$$</p>
+<p>where $v_k$ is the simulator-reported longitudinal speed.</p>
+<h2 id="perception-lane-boundary-extraction">Perception: lane boundary extraction</h2>
+<p>The perception stage crops the RGB observation to the region in front of the
+vehicle, converts it to intensity, and derives horizontal/vertical gradients
+$\partial_x I$ and $\partial_y I$. The gradient magnitude used for peak
+searching is</p>
+<p>$$
+G = |\partial_x I| + |\partial_y I|.
+$$</p>
+<p>Row-wise maxima separated by a minimum distance form candidate lane points.
+The first valid pair above the vehicle seed two sets of points that are tracked
+upward row by row. The final polylines are smoothed with a cubic B-spline to
+produce left/right boundaries $L$ and $R$.</p>
+<h2 id="planning-geometric-and-speed-references">Planning: geometric and speed references</h2>
+<h3 id="waypoint-generation">Waypoint generation</h3>
+<p>The waypoint planner fits a centreline spline by minimizing a curvature
+regularised functional</p>
+<p>$$
+J(C) = \sum_{i=1}^{N} |C(s_i) - m_i|_2^2 + \beta \int \kappa(s)^2\, ds,
+$$</p>
+<p>where $m_i$ are midpoints between $L$ and $R$, $\kappa(s)$ is the spline
+curvature, and $\beta$ is the smoothing weight (<code>planning.waypoints.smoothing_beta</code>).
+The planner outputs $N$ waypoints expressed in the vehicle frame.</p>
+<h3 id="target-speed-prediction">Target-speed prediction</h3>
+<p>Curvature-driven speed selection uses the reciprocal curvature $\kappa$ of the
+centreline:</p>
+<p>$$
+\hat{v} = \operatorname{clip}\left( v_{\min}, v_{\max}, v_{\max} - K_v\, |\kappa| \right),
+$$</p>
+<p>with gains configured via <code>planning.target_speed</code>. The planner optionally
+averages multiple forward-looking waypoints to damp oscillations.</p>
+<h2 id="control-vehicle-dynamics-simplifications">Control: vehicle dynamics simplifications</h2>
+<h3 id="lateral-steering-stanley-method">Lateral steering (Stanley method)</h3>
+<p>The Stanley controller combines heading error $\psi_k$ and cross-track error
+$d_k$:</p>
+<p>$$
+\delta_k = \psi_k + \arctan\left(\frac{k_s d_k}{v_k + \varepsilon}\right) -
+\lambda (\delta_k - \delta_{k-1}),
+$$</p>
+<p>where $k_s$ is the gain (<code>control.lateral.gain_constant</code>) and $\lambda$ is the
+first-order damping term (<code>control.lateral.damping_constant</code>). Image-frame
+waypoints $(x_{\text{img}}, y_{\text{img}})$ are rotated into a vehicle-centric
+frame by treating $y_{\text{img}}$ as the forward axis and centring
+$x_{\text{img}}$ around <code>control.lateral.vehicle_center_x</code>. The command is
+clipped to <code>control.lateral.steering_limit</code> radians (default $\pm 0.4$ rad) and
+rescaled to $[-1,1]$ before submission.</p>
+<h3 id="longitudinal-pid-control">Longitudinal PID control</h3>
+<p>Throttle/brake are derived from a discrete PID law applied to the speed error
+$e_k = v^*_k - v_k$:</p>
+<p>$$
+\begin{aligned}
+P_k &amp;= K_P e_k,\
+I_k &amp;= I_{k-1} + K_I e_k \Delta t,\
+D_k &amp;= K_D \frac{e_k - e_{k-1}}{\Delta t},\
+u_k &amp;= P_k + I_k + D_k.
+\end{aligned}
+$$</p>
+<p>The integral term is clamped to <code>control.longitudinal.integral_windup_limit</code>.
+Positive $\nu_k$ commands throttle while negative $\nu_k$ maps to brake
+pressure, both bounded by <code>control.longitudinal.max_gas</code> and
+<code>control.longitudinal.max_brake</code>.</p>
+<h2 id="configuration-surface">Configuration surface</h2>
+<p>All tunable parameters live in <code>config.yml</code> and mirror the dataclasses in
+<code>src/configuration.py</code>:</p>
+<ul>
+<li><code>perception.lane_detection.*</code> controls cropping, spline smoothness, and
+  gradient thresholds.</li>
+<li><code>planning.waypoints</code> sets waypoint count, interpolation model (<code>way_type</code>),
+  and smoothing weight.</li>
+<li><code>planning.target_speed</code> configures curvature gain and admissible speed range.</li>
+<li><code>control.lateral</code> exposes the Stanley gains, image-to-vehicle alignment, and
+  steering saturation limit, while <code>control.longitudinal</code> contains the PID
+  coefficients.</li>
+<li><code>monitoring.dashboard</code> toggles the live Matplotlib dashboard and the length of
+  its rolling history window.</li>
+<li><code>runtime.*</code> chooses episode horizon and timestep.</li>
+<li><code>environment.*</code> specifies the Gymnasium environment ID, render mode, and
+  wrapper behaviour.</li>
+</ul>
+<p>Switch configurations at runtime via</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>modular_pipeline.py<span class="w"> </span>--config<span class="w"> </span>custom.yml
+</code></pre></div>
+<h2 id="verification-and-testing">Verification and testing</h2>
+<p>Automated tests cover module contracts as well as the orchestrator wiring:</p>
+<ul>
+<li>Unit tests in <code>tests/</code> validate perception, planning, and control behaviours.</li>
+<li><code>tests/test_pipeline_integration.py</code> instantiates a synthetic environment and
+  stub modules to verify that resets, context propagation, and command
+  aggregation all operate correctly.</li>
+<li><code>mkdocs build</code> ensures the documentation renders without warnings.</li>
+</ul>
+<h2 id="live-telemetry-and-observers">Live telemetry and observers</h2>
+<p><code>ModularPipeline</code> accepts optional observers implementing the
+<code>PipelineObserver</code> protocol. An observer receives the full step context</p>
+<p>$$
+\Xi_k = {x_k,\ \mathcal{L}_k,\ \mathcal{P}_k,\ u_k,\ r_k,\ v_k},
+$$</p>
+<p>where $x_k$ is the rendered frame, $\mathcal{L}_k$ the perception output,
+$\mathcal{P}_k$ the planning state, $u_k$ the control command, and $r_k$ the
+reward. The built-in <code>LiveDashboard</code> observer (enabled by default) renders this
+stream with four synchronized panes:</p>
 <ol>
-<li><strong>Edge detection</strong> to identify potential lane markings.</li>
-<li><strong>Edge assignment</strong> to group these features into coherent lane boundaries.</li>
-<li><strong>Spline fitting</strong> to create a smooth geometric model suitable for downstream modules.</li>
+<li>Observation preview.</li>
+<li>Lane boundaries and centreline waypoints.</li>
+<li>Target speed $v^*_k$ versus measured velocity $v_k$.</li>
+<li>Normalized steering, throttle, and brake commands.</li>
 </ol>
-<p>This approach reflects the principle of <em>explicit perception modeling</em>, where the geometry of the environment is derived from first-order image properties and physical constraints rather than learned from data.</p>
-<hr />
-<h2 id="2-edge-detection">2. Edge Detection</h2>
-<h3 id="21-grayscale-conversion-and-cropping">2.1 Grayscale Conversion and Cropping</h3>
-<p><strong>Objective:</strong> Reduce image complexity and focus computation on the road surface.</p>
-<p>Converting the image to grayscale collapses redundant color information while preserving structural gradients critical for edge analysis. Cropping removes irrelevant features (sky, distant terrain, horizon) that can introduce high-frequency noise. The cropping height should be empirically optimized to include sufficient context for curvature estimation while maximizing computational efficiency.</p>
-<p><strong>Mathematical Formulation:</strong>
-Given an RGB image ( I(x, y, c) ), the grayscale intensity is
-[
-I_g(x, y) = 0.299R + 0.587G + 0.114B
-]
-and the region of interest is defined as ( I_g[y_0:y_1, :] ) where ( y_0 ) and ( y_1 ) delimit the cropped section.</p>
-<hr />
-<h3 id="22-gradient-computation">2.2 Gradient Computation</h3>
-<p><strong>Objective:</strong> Detect regions of significant luminance change that correspond to lane markings.</p>
-<p>Gradients are computed as spatial derivatives:
-[
-G_x = \frac{\partial I_g}{\partial x}, \quad G_y = \frac{\partial I_g}{\partial y}
-]
-and the gradient magnitude is:
-[
-|G| = \sqrt{G_x^2 + G_y^2}
-]</p>
-<p>Operators such as Sobel or Scharr filters approximate these derivatives through convolution kernels.
-A dynamic threshold ( \tau ) is applied:
-[
-|G| =
-\begin{cases}
-|G|, &amp; \text{if } |G| &gt; \tau \
-0, &amp; \text{otherwise}
-\end{cases}
-]
-to suppress noise and minor variations due to texture or shadows. Adaptive thresholding may further improve robustness under varying illumination.</p>
-<hr />
-<h3 id="23-rowwise-maxima-detection">2.3 Rowwise Maxima Detection</h3>
-<p><strong>Objective:</strong> Identify the pixel locations with maximal edge response per image row.</p>
-<p>Each row is treated as a one-dimensional signal ( G_y(x) ), where peaks correspond to likely lane boundaries. The <code>scipy.signal.find_peaks()</code> function can be applied with constraints on minimum peak distance, prominence, or width to ensure spatial consistency.</p>
-<p>This method assumes that lane markings appear as continuous, high-contrast curves extending across successive rows—a valid assumption for most structured roads.</p>
-<hr />
-<h2 id="3-edge-association">3. Edge Association</h2>
-<h3 id="31-initialization-near-the-vehicle">3.1 Initialization Near the Vehicle</h3>
-<p>The rows nearest to the vehicle provide the most reliable information because of minimal perspective distortion and higher pixel density. The first valid peaks in this region define the seed points for left and right boundaries:
-[
-L_0 = \arg\max G_y(x) \text{ for left region}, \quad R_0 = \arg\max G_y(x) \text{ for right region}
-]
-These serve as anchors for subsequent boundary tracking.</p>
-<hr />
-<h3 id="32-sequential-boundary-propagation">3.2 Sequential Boundary Propagation</h3>
-<p><strong>Objective:</strong> Establish continuity of lane boundaries by linking edges across image rows.</p>
-<p>The propagation algorithm searches for nearest-neighbor peaks in the next row that minimize Euclidean distance from the current lane point:
-[
-p_{n+1} = \arg\min_{q \in \text{peaks}_{n+1}} | q - p_n |
-]
-This process continues iteratively until the top of the cropped image is reached.
-This sequential assignment enforces <strong>geometric coherence</strong> and handles moderate curvature and noise.</p>
-<p>A Kalman filter or simple motion model can be optionally incorporated to predict expected positions in the next row, improving resilience to occlusion and missing peaks.</p>
-<hr />
-<h2 id="4-spline-fitting">4. Spline Fitting</h2>
-<h3 id="41-parametric-representation">4.1 Parametric Representation</h3>
-<p>The extracted left and right boundary points are modeled as smooth, parametric splines.
-Using <code>scipy.interpolate.splprep()</code>, we fit a curve:
-[
-(x(s), y(s)) = f(s), \quad s \in [0, 1]
-]
-where ( s ) is the normalized path length along the curve. This provides a differentiable and continuous description of the lane geometry.</p>
-<h3 id="42-spline-optimization">4.2 Spline Optimization</h3>
-<p>The fitting process minimizes:
-[
-E = \sum_i | P_i - f(s_i) |^2 + \lambda \int_0^1 |f''(s)|^2 , ds
-]
-where ( P_i ) are observed edge points and ( \lambda ) controls smoothness.
-Larger ( \lambda ) yields smoother splines but may underfit sharp bends; smaller values capture fine details at the expense of noise sensitivity.</p>
-<h3 id="43-practical-considerations">4.3 Practical Considerations</h3>
-<ul>
-<li><strong>Parameterization:</strong> Use chord-length or cumulative arc-length parameterization for uniform sampling.</li>
-<li><strong>Numerical Stability:</strong> Remove duplicate points and normalize coordinates before fitting.</li>
-<li><strong>Extrapolation:</strong> When boundary data are incomplete, low-order polynomial extrapolation can maintain continuity near the image horizon.</li>
-</ul>
-<hr />
-<h2 id="5-testing-and-validation">5. Testing and Validation</h2>
-<h3 id="51-experimental-evaluation">5.1 Experimental Evaluation</h3>
-<p>Testing should be performed using the simulator under various road geometries and lighting conditions. Evaluation metrics may include:</p>
-<ul>
-<li><strong>Detection accuracy</strong>: Mean distance between fitted spline and ground truth lane.</li>
-<li><strong>Continuity</strong>: Proportion of frames with consistent left/right assignment.</li>
-<li><strong>Robustness</strong>: Performance under partial occlusion, glare, or shadow artifacts.</li>
-</ul>
-<h3 id="52-parameter-tuning">5.2 Parameter Tuning</h3>
-<p>Key tunable parameters:</p>
-<ul>
-<li>Gradient threshold ( \tau ): Controls sensitivity to weak edges.</li>
-<li>Peak detection prominence: Reduces false positives.</li>
-<li>Spline smoothness ( \lambda ): Balances fidelity and regularization.</li>
-</ul>
-<p>A grid search or Bayesian optimization approach may be used for systematic tuning.</p>
-<hr />
-<h2 id="6-scientific-significance">6. Scientific Significance</h2>
-<p>This pipeline embodies the <strong>classical deterministic paradigm</strong> in autonomous vision. It demonstrates how geometric reasoning and signal processing can achieve robust environmental understanding without machine learning. From a control-theoretic perspective, it provides <strong>explainable inputs</strong> to downstream modules, enabling analytical stability proofs in feedback systems.</p>
-<p>Moreover, it provides a foundation for <strong>hybrid architectures</strong>, where deterministic perception is fused with data-driven refinement. Such integration would enable adaptive lane detection that remains interpretable and verifiable—two essential qualities for safety-critical applications.</p>
-<hr />
-<h2 id="7-conclusion">7. Conclusion</h2>
-<p>The lane detection module, as formulated here, translates raw visual input into a precise, parametric representation of road geometry. Through structured computation—grayscale conversion, gradient analysis, geometric association, and spline modeling—it achieves reliable performance using minimal assumptions.</p>
-<p>This approach demonstrates that interpretability and precision can coexist with efficiency, reinforcing the continuing relevance of physics-informed, algorithmic design in the age of machine learning.</p>
-<h1 id="lane-detection">Lane Detection</h1>
-<p><code>LaneDetection</code> extracts left and right roadside splines from the 96×96 RGB
-rendered frame.</p>
-<h2 id="processing-stages">Processing stages</h2>
+<p>The dashboard is invaluable when tuning controller gains: deviations between
+$v^*_k$ and $v_k$ immediately highlight PID misconfiguration, while steering
+oscillations show up as large gradients in the command trace. Disable the
+dashboard in headless environments via <code>--no_display</code> or by setting
+<code>monitoring.dashboard.enabled</code> to <code>false</code> in <code>config.yml</code>.</p>
+<h2 id="extensibility-guidelines">Extensibility guidelines</h2>
 <ol>
-<li><strong>Cropping and grayscale conversion</strong> – removes the dashboard HUD and reduces
-   dimensionality while keeping gradients intact.</li>
-<li><strong>Gradient magnitude</strong> – computes Sobel-style derivatives and thresholds weak
-   responses below <code>gradient_threshold</code>.</li>
-<li><strong>Row-wise peak search</strong> – uses <code>scipy.signal.find_peaks</code> with a configurable
-   minimum spacing to produce candidate lane pixels.</li>
-<li><strong>Sequential association</strong> – tracks the closest peak in each row to grow the
-   left and right lane hypotheses upward in the cropped image.</li>
-<li><strong>Spline fitting</strong> – fits cubic B-splines (<code>scipy.interpolate.splprep</code>) once a
-   sufficient number of points is collected; otherwise the previous spline is
-   reused.</li>
+<li>Implement the appropriate protocol from <code>src/pipeline/interfaces.py</code>
+   (<code>PerceptionModule</code>, <code>PlanningModule</code>, or <code>ControlModule</code>).</li>
+<li>Register the new module in <code>build_pipeline</code> or compose it programmatically.</li>
+<li>Declare any new hyper-parameters in <code>config.yml</code> and extend the
+   configuration dataclasses.</li>
+<li>Document the mathematical model and tuning recommendations in this manual.</li>
 </ol>
-<h2 id="practical-guidance">Practical guidance</h2>
-<ul>
-<li>Tune <code>cut_size</code> to balance field of view and computation. A value of 68 keeps
-  the road while removing most of the sky.</li>
-<li>Increase <code>gradient_threshold</code> when track textures cause false positives.</li>
-<li>The module preserves the last valid splines to prevent sudden controller
-  oscillations when the road temporarily disappears.</li>
-<li><code>plot_state_lane</code> is available for debugging; it overlays the predicted lanes
-  and optional waypoints on the rendered frame.</li>
-</ul>
-<h2 id="configuration-hooks">Configuration hooks</h2>
-<p>Tune this module via <code>perception.lane_detection</code> in <code>config.yml</code>. Adjust the
-crop (<code>cut_size</code>), smoothing, and gradient thresholds to match new lighting or
-track layouts.</p>
+<p>The modular structure allows researchers to experiment with advanced perception
+(e.g. neural lane segmentation), nonlinear model predictive control, or
+reinforcement learning components while preserving a reproducible evaluation
+harness.</p>
 
 
 
