@@ -1,42 +1,64 @@
-import warnings
-warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API")
+"""Manual driving harness with dashboard telemetry for debugging."""
+
+from __future__ import annotations
+
+import argparse
+import logging
+from typing import Dict
 
 import numpy as np
-import gymnasium as gym
 import pygame
-import logging
 
-# Configure logging
+import sys
+import pathlib
+
+_PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[1]
+_SRC_ROOT = _PROJECT_ROOT / "src"
+
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+if str(_SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SRC_ROOT))
+
+from lane_detection import LaneDetection
+from waypoint_prediction import target_speed_prediction, waypoint_prediction
+
+try:  # pragma: no cover
+    from .dashboard_utils import (
+        create_dashboard,
+        create_env,
+        extract_speed,
+        load_config,
+        reset_dashboard,
+        update_dashboard,
+    )
+except ImportError:  # pragma: no cover
+    from dashboard_utils import (  # type: ignore
+        create_dashboard,
+        create_env,
+        extract_speed,
+        load_config,
+        reset_dashboard,
+        update_dashboard,
+    )
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
-def normalize_env_name(env_name: str) -> str:
-    # Map deprecated CarRacing-v2 to the current v3
-    if env_name.strip().lower() == "carracing-v2":
-        logging.info("Environment CarRacing-v2 is deprecated. Switching to CarRacing-v3.")
-        return "CarRacing-v3"
-    return env_name
 
-def initialize_environment(env_name="CarRacing-v3", render_mode="human"):
-    """Initialize the Gymnasium environment and return it."""
-    env_name = normalize_env_name(env_name)
-    env = gym.make(env_name, render_mode=render_mode)
-    return env
-
-def initialize_pygame(fps=60):
-    """Initialize Pygame and return a clock object."""
-    pygame.init()
-    return pygame.time.Clock(), fps
-
-def process_input(key_bindings, steering_sensitivity=1.0, action_intensity=1.0):
-    """Process Pygame input and return an action array with customized key bindings."""
-    action = [0.0, 0.0, 0.0]  # [steer, gas, brake]
+def process_input(
+    key_bindings: Dict[str, int],
+    *,
+    steering_sensitivity: float,
+    action_intensity: float,
+) -> tuple[np.ndarray, bool]:
+    action = np.zeros(3, dtype=np.float32)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            return np.array(action, dtype=np.float32), True
+            return action, True
 
     keys = pygame.key.get_pressed()
     if keys[key_bindings["quit"]]:
-        return np.array(action, dtype=np.float32), True
+        return action, True
     if keys[key_bindings["left"]]:
         action[0] = -steering_sensitivity
     if keys[key_bindings["right"]]:
@@ -46,85 +68,115 @@ def process_input(key_bindings, steering_sensitivity=1.0, action_intensity=1.0):
     if keys[key_bindings["brake"]]:
         action[2] = +action_intensity
 
-    # CarRacing expects float32: steer in [-1,1], gas/brake in [0,1]
-    action = np.array(action, dtype=np.float32)
-    action[0] = np.clip(action[0], -1.0, 1.0)
-    action[1] = np.clip(action[1], 0.0, 1.0)
-    action[2] = np.clip(action[2], 0.0, 1.0)
     return action, False
 
-def handle_step(env, action):
-    """Perform a step in the environment and return updated information (without info)."""
-    observation, reward, terminated, truncated, info = env.step(action)
-    return observation, reward, terminated, truncated
 
-def game_loop(env, clock, fps, key_bindings, steering_sensitivity, action_intensity):
-    """Main game loop where the action and environment are updated."""
-    total_reward = 0.0
+def drive(
+    *,
+    render_mode: str,
+    steering_sensitivity: float,
+    action_intensity: float,
+    show_dashboard: bool,
+    fps: int,
+    key_bindings: Dict[str, int],
+) -> None:
+    config = load_config()
+    env = create_env(config, render_mode=render_mode)
+
+    lane_detector = LaneDetection(**config.perception.lane_detection.to_kwargs())
+    dashboard = create_dashboard(config, enabled=show_dashboard)
+
     observation, info = env.reset()
+    reset_dashboard(dashboard, observation, info)
+
+    pygame.init()
+    pygame.display.set_caption("Manual driving harness - focus window for keyboard input")
+    pygame.display.set_mode((640, 480), pygame.HIDDEN)
+    clock = pygame.time.Clock()
+
+    total_reward = 0.0
+    steps = 0
     done = False
 
+    timestep = config.runtime.timestep_seconds
+
     while not done:
-        action, quit_signal = process_input(key_bindings, steering_sensitivity, action_intensity)
+        action, quit_signal = process_input(
+            key_bindings,
+            steering_sensitivity=steering_sensitivity,
+            action_intensity=action_intensity,
+        )
         if quit_signal:
-            done = True
             break
 
-        observation, reward, terminated, truncated = handle_step(env, action)
+        observation, reward, terminated, truncated, info = env.step(action)
         total_reward += reward
+
+        left_lane, right_lane = lane_detector.lane_detection(observation)
+        waypoints = waypoint_prediction(left_lane, right_lane)
+        target_speed = target_speed_prediction(waypoints)
+
+        speed = extract_speed(info)
+
+        update_dashboard(
+            dashboard,
+            observation=observation,
+            action=action,
+            reward=reward,
+            terminated=terminated,
+            truncated=truncated,
+            info=info,
+            step_index=steps,
+            speed=speed,
+            timestep=timestep,
+            lanes=(left_lane, right_lane),
+            waypoints=waypoints,
+            target_speed=target_speed,
+        )
+
+        if steps % 10 == 0 or terminated or truncated:
+            logging.info(
+                "step %03d reward=%+.2f speed=%+.2f target=%+.2f",  # noqa: G004
+                steps,
+                reward,
+                speed,
+                target_speed,
+            )
 
         env.render()
         clock.tick(fps)
 
-        if terminated or truncated:
-            logging.info(f"Episode ended. Total reward: {total_reward}")
-            observation, info = env.reset()
+        steps += 1
+        done = terminated or truncated
 
-    return total_reward
+    logging.info("Episode finished after %d steps. Total reward: %.2f", steps, total_reward)
 
-def close_environment(env):
-    """Close the environment and quit Pygame."""
     env.close()
     pygame.quit()
 
-def drive(env_name="CarRacing-v3", render_mode="human", fps=60, steering_sensitivity=1.0, action_intensity=1.0, key_bindings=None):
-    """Run the car driving simulation with customizable parameters."""
-    if key_bindings is None:
-        key_bindings = {
-            "left": pygame.K_LEFT,
-            "right": pygame.K_RIGHT,
-            "gas": pygame.K_UP,
-            "brake": pygame.K_DOWN,
-            "quit": pygame.K_ESCAPE,
-        }
-
-    logging.info("Initializing environment...")
-    env = initialize_environment(env_name, render_mode)
-
-    logging.info(f"Initialized environment: {env.unwrapped.spec.id}")
-    clock, fps = initialize_pygame(fps)
-
-    logging.info("Starting game loop...")
-    total_reward = game_loop(env, clock, fps, key_bindings, steering_sensitivity, action_intensity)
-
-    logging.info(f"Total reward for this session: {total_reward}")
-    logging.info("Closing environment...")
-    close_environment(env)
 
 if __name__ == "__main__":
-    custom_key_bindings = {
-        "left": pygame.K_a,    # A
-        "right": pygame.K_d,   # D
-        "gas": pygame.K_w,     # W
-        "brake": pygame.K_s,   # S
-        "quit": pygame.K_q,    # Q
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--no-dashboard", action="store_true")
+    parser.add_argument("--render_mode", default="human")
+    parser.add_argument("--fps", type=int, default=60)
+    parser.add_argument("--steering", type=float, default=1.0)
+    parser.add_argument("--throttle", type=float, default=1.0)
+    args = parser.parse_args()
+
+    bindings = {
+        "left": pygame.K_LEFT,
+        "right": pygame.K_RIGHT,
+        "gas": pygame.K_UP,
+        "brake": pygame.K_DOWN,
+        "quit": pygame.K_ESCAPE,
     }
 
     drive(
-        env_name="CarRacing-v3",
-        render_mode="human",
-        fps=60,
-        steering_sensitivity=1.0,
-        action_intensity=1.0,
-        key_bindings=custom_key_bindings,
+        render_mode=args.render_mode,
+        steering_sensitivity=args.steering,
+        action_intensity=args.throttle,
+        show_dashboard=not args.no_dashboard,
+        fps=args.fps,
+        key_bindings=bindings,
     )

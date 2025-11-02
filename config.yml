@@ -30,16 +30,23 @@ planning:
 
 control:
   lateral:
-    gain_constant: 0.0125
+    gain_constant: 0.025
     damping_constant: 0.0125
+    vehicle_center_x: 48.0
+    steering_limit: 0.4
   longitudinal:
-    KP: 0.28
+    KP: 0.08
     KI: 0.01
     KD: 0.02
     integral_windup_limit: 10.0
-    max_gas: 0.1
-    max_brake: 0.1
+    max_gas: 0.8
+    max_brake: 0.8
     default_dt: 0.02
+
+monitoring:
+  dashboard:
+    enabled: true
+    max_history: 200
 
 evaluation:
   episodes: 5

@@ -45,16 +45,18 @@ All module parameters are driven by `config.yml`. Supply `--config <path>` to
 load an alternative YAML file when experimenting with controller or planner
 settings.
 
+Running `python modular_pipeline.py` without `--no_display` launches the live
+dashboard so you can watch the detected lanes, planned waypoints, and velocity
+tracking behaviour evolve over time.
+
 ## Documentation map
 
 | Topic | Location |
 |-------|----------|
-| Overall architecture and timing assumptions | [`architecture.md`](architecture.md) |
-| Module deep dives | [`modules/`](modules/lane_detection.md) |
-| Testing, profiling, and validation guidance | [`testing.md`](testing.md) |
+| Scientific reference with equations, tuning surfaces, and testing guidance | [`technical_reference.md`](technical_reference.md) |
 
 ## Getting help
 
-1. Start with the module documentation to understand the numerical contracts.
-2. Inspect `modular_pipeline.py` for the main orchestration loop.
+1. Start with the scientific reference to understand module contracts and control laws.
+2. Inspect `modular_pipeline.py` for the command-line interface and configuration wiring.
 3. Open an issue when you encounter simulator- or build-specific problems.

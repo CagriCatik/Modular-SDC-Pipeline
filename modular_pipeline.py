@@ -1,17 +1,13 @@
-# modular_pipeline.py
-"""Command-line orchestrator for the Modular SDC pipeline with 2x2 debug windows."""
+"""Command-line entry point wiring configuration and pipeline modules."""
 
 from __future__ import annotations
 
 import argparse
 import pathlib
 import sys
-from dataclasses import dataclass, field
-from typing import Callable, Optional, Sequence, Dict, Tuple
+from typing import Optional
 
 import gymnasium as gym
-import numpy as np
-import matplotlib.pyplot as plt
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[0] / "src"))
 
@@ -19,204 +15,89 @@ from configuration import AppConfig, DEFAULT_CONFIG_PATH, TargetSpeedConfig
 from lane_detection import LaneDetection
 from lateral_control import LateralController
 from longitudinal_control import LongitudinalController
+from pipeline import (
+    LaneDetectionModule,
+    LiveDashboard,
+    LateralControlModule,
+    LongitudinalControlModule,
+    ModularPipeline,
+    TargetSpeedPlanningModule,
+    WaypointPlanningModule,
+)
+from pipeline.core import calculate_score_for_leaderboard, evaluate
 from sdc_wrapper import SDC_Wrapper
-from waypoint_prediction import target_speed_prediction, waypoint_prediction
+
+__all__ = [
+    "ModularPipeline",
+    "build_pipeline",
+    "evaluate",
+    "calculate_score_for_leaderboard",
+    "main",
+]
 
 
-# ---------------------------------------------------------------------------
-# 2x2 debug window manager (slot-safe)
-# ---------------------------------------------------------------------------
-class DebugWindows:
-    def __init__(self, order: Sequence[str] = ("10_gray", "30_edges", "50_maxima_mask", "90_overlay")):
-        plt.ion()
-        plt.show()
-        self.fig, self.axes = plt.subplots(2, 2, num="debug_2x2", figsize=(8, 8))
-        # slot -> dict with keys: name, im
-        self.slots: Dict[int, Dict[str, object]] = {i: {"name": None, "im": None} for i in range(4)}
-        self.order = list(order)
+def build_pipeline(
+    config: AppConfig,
+    env: gym.Env,
+    *,
+    enable_dashboard: Optional[bool] = None,
+) -> ModularPipeline:
+    """Create a :class:`ModularPipeline` from configuration and an environment."""
 
-    @staticmethod
-    def _is_grayscale(img: np.ndarray) -> bool:
-        return img.ndim == 2 or (img.ndim == 3 and img.shape[2] == 1)
+    lane_kwargs = config.perception.lane_detection.to_kwargs()
+    perception_module = LaneDetectionModule(
+        factory=lambda: LaneDetection(**lane_kwargs)
+    )
 
-    def _prep_data(self, img: np.ndarray):
-        if self._is_grayscale(img):
-            data = img.squeeze()
-            vmin = float(np.min(data))
-            vmax = float(np.max(data))
-            if vmin == vmax:
-                vmax = vmin + 1.0
-            return data, dict(cmap="gray", vmin=vmin, vmax=vmax)
-        return img, {}
+    target_speed_settings = TargetSpeedConfig(
+        num_waypoints_used=config.planning.target_speed.num_waypoints_used,
+        max_speed=config.planning.target_speed.max_speed,
+        min_speed=config.planning.target_speed.min_speed,
+        curvature_gain=config.planning.target_speed.curvature_gain,
+    )
 
-    def update(self, frames: Dict[str, np.ndarray]):
-        selected = [(k, frames[k]) for k in self.order if k in frames]
-        for idx in range(4):
-            ax = self.axes.ravel()[idx]
-            if idx >= len(selected):
-                ax.cla()
-                ax.axis("off")
-                self.slots[idx] = {"name": None, "im": None}
-                continue
+    planning_modules = [
+        WaypointPlanningModule(
+            num_waypoints=config.planning.waypoints.num_waypoints,
+            way_type=config.planning.waypoints.way_type,
+            smoothing_beta=config.planning.waypoints.smoothing_beta,
+        ),
+        TargetSpeedPlanningModule(settings=target_speed_settings),
+    ]
 
-            name, img = selected[idx]
-            data, kwargs = self._prep_data(img)
+    lateral_kwargs = config.control.lateral.to_kwargs()
+    longitudinal_kwargs = config.control.longitudinal.to_kwargs()
 
-            slot = self.slots[idx]
-            recreate = (
-                slot["im"] is None
-                or slot["name"] != name
-                or getattr(slot["im"], "axes", None) is None
-                or slot["im"].axes is not ax
-            )
-            if recreate:
-                ax.cla()
-                ax.set_title(name)
-                im = ax.imshow(data, interpolation="nearest", **kwargs)
-                ax.axis("off")
-                self.slots[idx] = {"name": name, "im": im}
-            else:
-                im = slot["im"]
-                im.set_data(data)
-                if "vmin" in kwargs and "vmax" in kwargs:
-                    im.set_clim(vmin=kwargs["vmin"], vmax=kwargs["vmax"])
-        self.fig.tight_layout()
-        self.fig.canvas.draw_idle()
+    control_modules = [
+        LateralControlModule(
+            factory=lambda: LateralController(**lateral_kwargs)
+        ),
+        LongitudinalControlModule(
+            factory=lambda: LongitudinalController(**longitudinal_kwargs)
+        ),
+    ]
 
-    @staticmethod
-    def tick():
-        plt.pause(0.001)
+    observers = []
+    dashboard_flag = (
+        config.monitoring.dashboard.enabled if enable_dashboard is None else bool(enable_dashboard)
+    )
+    if dashboard_flag:
+        observers.append(
+            LiveDashboard(max_history=config.monitoring.dashboard.max_history)
+        )
+
+    return ModularPipeline(
+        env=env,
+        perception=perception_module,
+        planning=planning_modules,
+        control=control_modules,
+        max_steps=config.runtime.max_steps,
+        timestep_seconds=config.runtime.timestep_seconds,
+        observers=observers,
+    )
 
 
-def _action_contract(action: Sequence[float], action_space) -> np.ndarray:
-    act = np.asarray(action, dtype=np.float32).reshape(3)
-    low = np.asarray(action_space.low, dtype=np.float32)
-    high = np.asarray(action_space.high, dtype=np.float32)
-    return np.clip(act, low, high).astype(action_space.dtype, copy=False)
-
-
-def _reset_with_speed(env, **kwargs):
-    obs, info = env.reset(**kwargs)
-    speed = float(info.get("speed", 0.0)) if isinstance(info, dict) else 0.0
-    return obs, speed
-
-
-@dataclass
-class ModularPipeline:
-    """High-level orchestrator for the perception-planning-control loop."""
-
-    env: gym.Env
-    num_waypoints: int = 6
-    num_waypoints_speed: int = 4
-    max_steps: int = 600
-    timestep_seconds: float = 1.0 / 50.0
-    waypoint_type: str = "smooth"
-    waypoint_smoothing_beta: float = 30.0
-    target_speed_settings: TargetSpeedConfig = field(default_factory=TargetSpeedConfig)
-    lane_detection_factory: Callable[[], LaneDetection] = LaneDetection
-    lateral_controller_factory: Callable[[], LateralController] = LateralController
-    longitudinal_controller_factory: Callable[[], LongitudinalController] = LongitudinalController
-    debug_windows_enabled: bool = True  # set from --no_display
-
-    def __post_init__(self) -> None:
-        self._lane_detector = self.lane_detection_factory()
-        self._lateral_controller = self.lateral_controller_factory()
-        self._longitudinal_controller = self.longitudinal_controller_factory()
-        self._dbg_win: Optional[DebugWindows] = DebugWindows() if self.debug_windows_enabled else None
-
-    # ------------------------------------------------------------------
-    # Episode lifecycle
-    # ------------------------------------------------------------------
-
-    def _reset_modules(self) -> None:
-        self._lane_detector = self.lane_detection_factory()
-
-        if hasattr(self._lateral_controller, "reset"):
-            self._lateral_controller.reset()
-        if hasattr(self._longitudinal_controller, "reset"):
-            self._longitudinal_controller.reset()
-
-        # Keep a single persistent window; re-create if missing
-        if self.debug_windows_enabled and self._dbg_win is None:
-            self._dbg_win = DebugWindows()
-
-    def run_episode(self, seed: Optional[int] = None) -> float:
-        """Execute one episode and return the accumulated reward."""
-        try:
-            obs, speed = _reset_with_speed(self.env, seed=seed)
-        except Exception:
-            print("Please note that you can't use the window on the cluster")
-            raise
-
-        self._reset_modules()
-
-        total_reward = 0.0
-        for _step in range(self.max_steps):
-            lane_left, lane_right = self._lane_detector.lane_detection(obs)
-            waypoints = waypoint_prediction(
-                lane_left,
-                lane_right,
-                num_waypoints=self.num_waypoints,
-                way_type=self.waypoint_type,
-                smoothing_beta=self.waypoint_smoothing_beta,
-            )
-            target_speed = target_speed_prediction(
-                waypoints,
-                num_waypoints_used=self.target_speed_settings.num_waypoints_used,
-                max_speed=self.target_speed_settings.max_speed,
-                min_speed=self.target_speed_settings.min_speed,
-                K_v=self.target_speed_settings.curvature_gain,
-            )
-
-            steer = self._lateral_controller.stanley(waypoints, speed)
-            gas, brake = self._longitudinal_controller.control(
-                speed,
-                target_speed,
-                dt=self.timestep_seconds,
-            )
-
-            action = _action_contract([steer, gas, brake], self.env.action_space)
-            obs, reward, terminated, truncated, info = self.env.step(action)
-
-            if isinstance(info, dict) and "speed" in info:
-                speed = float(info["speed"])
-
-            total_reward += float(reward)
-
-            # ---- Debug windows integration ----
-            if self.debug_windows_enabled and self._dbg_win is not None and getattr(self._lane_detector, "get_debug_frames", None):
-                frames = self._lane_detector.get_debug_frames(reset=True)
-                if frames:
-                    self._dbg_win.update(frames)
-                    self._dbg_win.tick()
-            # -----------------------------------
-
-            if terminated or truncated:
-                break
-
-        return float(total_reward)
-
-
-def evaluate(pipeline: ModularPipeline, episodes: int = 5) -> None:
-    for episode in range(episodes):
-        reward = pipeline.run_episode()
-        print(f"episode {episode}\t reward {reward:.6f}")
-
-
-def calculate_score_for_leaderboard(pipeline: ModularPipeline, seeds: Sequence[int]) -> None:
-    # DO NOT CHANGE THE EVALUATION PROTOCOL
-    total_reward = 0.0
-    for episode, seed in enumerate(seeds):
-        reward = pipeline.run_episode(seed=seed)
-        print(f"episode {episode}\t reward {reward:.6f}")
-        total_reward += float(np.clip(reward, 0.0, np.inf))
-
-    print("---------------------------")
-    print(" total score: %f" % (total_reward / len(seeds)))
-    print("---------------------------")
-
-
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--score", action="store_true", help="evaluate for the leaderboard")
     parser.add_argument("--no_display", action="store_true", default=False, help="headless mode")
@@ -240,37 +121,8 @@ def main():
         **config.environment.wrapper.to_kwargs(),
     )
 
-    target_speed_settings = TargetSpeedConfig(
-        num_waypoints_used=config.planning.target_speed.num_waypoints_used,
-        max_speed=config.planning.target_speed.max_speed,
-        min_speed=config.planning.target_speed.min_speed,
-        curvature_gain=config.planning.target_speed.curvature_gain,
-    )
-
-    # Enable LaneDetection debug frames unless headless
-    debug_windows_enabled = not args.no_display
-
-    pipeline = ModularPipeline(
-        env=env,
-        num_waypoints=config.planning.waypoints.num_waypoints,
-        num_waypoints_speed=config.planning.target_speed.num_waypoints_used,
-        max_steps=config.runtime.max_steps,
-        timestep_seconds=config.runtime.timestep_seconds,
-        waypoint_type=config.planning.waypoints.way_type,
-        waypoint_smoothing_beta=config.planning.waypoints.smoothing_beta,
-        target_speed_settings=target_speed_settings,
-        lane_detection_factory=lambda: LaneDetection(
-            debug=debug_windows_enabled,  # critical: turn on debug frame capture
-            **config.perception.lane_detection.to_kwargs()
-        ),
-        lateral_controller_factory=lambda: LateralController(
-            **config.control.lateral.to_kwargs()
-        ),
-        longitudinal_controller_factory=lambda: LongitudinalController(
-            **config.control.longitudinal.to_kwargs()
-        ),
-        debug_windows_enabled=debug_windows_enabled,  # create and drive 2x2 window
-    )
+    dashboard_enabled = config.monitoring.dashboard.enabled and not args.no_display
+    pipeline = build_pipeline(config, env, enable_dashboard=dashboard_enabled)
 
     try:
         if args.score:
@@ -278,7 +130,7 @@ def main():
         else:
             evaluate(pipeline, config.evaluation.episodes)
     finally:
-        env.close()
+        pipeline.close()
 
 
 if __name__ == "__main__":
