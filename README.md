@@ -8,7 +8,7 @@
 
 </div>
 
-A fully modular perception--planning--control stack for the Gymnasium [`CarRacing-v3`](https://gymnasium.farama.org/environments/box2d/car_racing/) environment. The project emphasises deterministic, explainable algorithms so that tuning and experimentation remain reproducible across machines.
+A fully modular perception, planning, control stack for the Gymnasium [`CarRacing-v3`](https://gymnasium.farama.org/environments/box2d/car_racing/) environment. The project emphasises deterministic, explainable algorithms so that tuning and experimentation remain reproducible across machines.
 
 ```mermaid
 flowchart LR
