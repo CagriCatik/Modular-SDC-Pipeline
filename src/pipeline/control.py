@@ -67,5 +67,7 @@ class LongitudinalControlModule(ControlModule):
             context.speed,
             plan.target_speed,
             dt=context.timestep,
+            steer=command.steer,
+            waypoints=plan.waypoints,
         )
         return command.updated(gas=gas, brake=brake)

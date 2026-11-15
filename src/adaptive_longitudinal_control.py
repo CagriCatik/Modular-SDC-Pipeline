@@ -106,6 +106,7 @@ class AdaptiveLongitudinalController:
         target_speed: float,
         dt: Optional[float] = None,
         steer: float = 0.0,
+        waypoints: Optional[np.ndarray] = None,
     ) -> tuple[float, float]:
         """Compute adaptive ``(gas, brake)`` commands.
 
@@ -114,10 +115,12 @@ class AdaptiveLongitudinalController:
             target_speed: Desired speed from planner (m/s).
             dt: Optional integration step (seconds).
             steer: Current lateral steering command used for cornering traction guard.
+            waypoints: Unused lookahead waypoints kept for interface compatibility.
 
         Returns:
             ``(gas, brake)`` tuple clipped to simulator limits.
         """
+        _ = waypoints
 
         dt_value = self.default_dt if dt is None else float(dt)
         dt_value = max(dt_value, 1e-3)

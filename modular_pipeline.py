@@ -14,7 +14,9 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[0] / "src"))
 from configuration import AppConfig, DEFAULT_CONFIG_PATH, TargetSpeedConfig
 from lane_detection import LaneDetection
 from lateral_control import LateralController
+from adaptive_longitudinal_control import AdaptiveLongitudinalController
 from longitudinal_control import LongitudinalController
+from mpc_longitudinal_control import MPCLongitudinalController
 from mpc_lateral_control import MPCLateralController
 from pipeline import (
     LaneDetectionModule,
@@ -76,13 +78,25 @@ def build_pipeline(
         lateral_module = LateralControlModule(
             factory=lambda: LateralController(**lateral_kwargs)
         )
-    longitudinal_kwargs = config.control.longitudinal.to_kwargs()
+    if config.control.longitudinal.controller_type == "adaptive":
+        longitudinal_kwargs = config.control.longitudinal.to_adaptive_kwargs()
+        longitudinal_module = LongitudinalControlModule(
+            factory=lambda: AdaptiveLongitudinalController(**longitudinal_kwargs)
+        )
+    elif config.control.longitudinal.controller_type == "mpc":
+        longitudinal_kwargs = config.control.longitudinal.to_mpc_kwargs()
+        longitudinal_module = LongitudinalControlModule(
+            factory=lambda: MPCLongitudinalController(**longitudinal_kwargs)
+        )
+    else:
+        longitudinal_kwargs = config.control.longitudinal.to_kwargs()
+        longitudinal_module = LongitudinalControlModule(
+            factory=lambda: LongitudinalController(**longitudinal_kwargs)
+        )
 
     control_modules = [
         lateral_module,
-        LongitudinalControlModule(
-            factory=lambda: LongitudinalController(**longitudinal_kwargs)
-        ),
+        longitudinal_module,
     ]
 
     observers = []

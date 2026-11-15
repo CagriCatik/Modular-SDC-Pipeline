@@ -107,6 +107,8 @@ class LongitudinalController:
         speed: float,
         target_speed: float,
         dt: Optional[float] = None,
+        steer: float = 0.0,
+        waypoints: Optional[np.ndarray] = None,
     ) -> tuple[float, float]:
         """Translate the PID output into gas and brake commands.
 
@@ -114,10 +116,13 @@ class LongitudinalController:
             speed: Current speed from the simulator.
             target_speed: Desired speed produced by the planner.
             dt: Optional integration step (seconds).
+            steer: Unused steering angle kept for interface compatibility.
+            waypoints: Unused lookahead waypoints kept for interface compatibility.
 
         Returns:
             ``(gas, brake)`` tuple with values clipped to simulator limits.
         """
+        _ = (steer, waypoints)
 
         control = self.PID_step(speed, target_speed, dt=dt)
 
