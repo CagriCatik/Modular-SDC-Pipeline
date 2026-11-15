@@ -1,0 +1,66 @@
+environment:
+  id: CarRacing-v3
+  kwargs:
+    render_mode: human
+  wrapper:
+    remove_score: true
+    return_linear_velocity: true
+runtime:
+  max_steps: 600
+  timestep_seconds: 0.02
+perception:
+  lane_detection:
+    cut_size: 68
+    spline_smoothness: 10.0
+    gradient_threshold: 14.0
+    distance_maxima_gradient: 3
+planning:
+  waypoints:
+    num_waypoints: 6
+    way_type: smooth
+    smoothing_beta: 33.12389318395678
+  target_speed:
+    num_waypoints_used: 4
+    max_speed: 62.599410160787095
+    min_speed: 34.70487488568539
+    curvature_gain: 0.5
+control:
+  lateral:
+    controller_type: mpc
+    gain_constant: 0.025
+    damping_constant: 0.3
+    vehicle_center_x: 48.0
+    steering_limit: 0.4
+    horizon: 6
+    wheelbase: 10.0
+    dt: 0.05
+    cte_weight: 0.1
+    heading_weight: 1.400297391529175
+    steer_weight: 1.1811964628048612
+    steer_rate_weight: 0.46883851391205694
+  longitudinal:
+    KP: 0.18709383670116383
+    KI: 0.04100731828625175
+    KD: 0.008698065161450878
+    integral_windup_limit: 10.0
+    max_gas: 0.6579876240335318
+    max_brake: 0.2
+    default_dt: 0.02
+monitoring:
+  dashboard:
+    enabled: true
+    max_history: 200
+    backend: pyside
+evaluation:
+  episodes: 5
+  score_seeds:
+  - 97657630
+  - 47460391
+  - 22619914
+  - 76925063
+  - 84647422
+  - 83470445
+  - 77482096
+  - 94017676
+  - 99341122
+  - 58134947

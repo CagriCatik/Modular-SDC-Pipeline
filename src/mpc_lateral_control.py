@@ -98,9 +98,7 @@ class MPCLateralController:
         ds = np.maximum(ds, 1.0)
 
         prev_delta = float(self.previous_steering_angle)
-        wb = self.wheelbase
-        # Speed-adaptive effective wheelbase for stability at higher speeds
-        wb_eff = wb * (1.0 + 0.02 * v)
+        wb_eff = self.wheelbase
         w_cte = self.cte_weight
         w_psi = self.heading_weight
         w_u = self.steer_weight

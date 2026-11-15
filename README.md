@@ -4,7 +4,6 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Gymnasium](https://img.shields.io/badge/Gymnasium-Car_Racing-brightgreen?logo=google)](https://gymnasium.farama.org/environments/box2d/car_racing/)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/CagriCatik/Modular-SDC-Pipeline)
 
 </div>
 

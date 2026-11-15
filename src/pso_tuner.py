@@ -64,8 +64,10 @@ DEFAULT_MPC_CONTROL_PLANNING_SPECS: Tuple[ParameterSpec, ...] = (
 )
 
 DEFAULT_PERCEPTION_SPECS: Tuple[ParameterSpec, ...] = (
+    ParameterSpec("perception.lane_detection.cut_size", 56, 74, is_int=True),
     ParameterSpec("perception.lane_detection.spline_smoothness", 2.0, 30.0),
     ParameterSpec("perception.lane_detection.gradient_threshold", 8.0, 28.0),
+    ParameterSpec("perception.lane_detection.distance_maxima_gradient", 2, 6, is_int=True),
 )
 
 

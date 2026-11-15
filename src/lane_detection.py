@@ -149,6 +149,44 @@ class LaneDetection:
 
         return lane_boundary1_startpoint, lane_boundary2_startpoint, lanes_found
 
+    def _extract_road_edges_from_color(self, state_image_full):
+        """Extract left/right asphalt boundary points using RGB road color segmentation."""
+        if not isinstance(state_image_full, np.ndarray) or state_image_full.ndim != 3 or state_image_full.shape[2] < 3:
+            return None, None
+
+        crop = state_image_full[:self.cut_size, :, :3][::-1].astype(np.int16)
+        chroma = crop.max(axis=2) - crop.min(axis=2)
+        luma = crop.mean(axis=2)
+        road_mask = (chroma < 30) & (luma > 65) & (luma < 145)
+
+        left_pts = []
+        right_pts = []
+        anchor_x = float(self.car_position[0])
+
+        for row in range(self.cut_size):
+            cols = np.where(road_mask[row])[0]
+            if cols.size < 3:
+                continue
+            # Split into contiguous horizontal segments
+            breaks = np.where(np.diff(cols) > 2)[0] + 1
+            segments = np.split(cols, breaks)
+            # Filter out tiny noise specks (< 3 px wide)
+            segments = [seg for seg in segments if seg.size >= 3]
+            if not segments:
+                continue
+            # Pick segment closest to the previous road center
+            best_seg = min(segments, key=lambda seg: abs(0.5 * (seg[0] + seg[-1]) - anchor_x))
+            xl, xr = int(best_seg[0]), int(best_seg[-1])
+            if left_pts and abs(xl - left_pts[-1][0]) > 14 and abs(xr - right_pts[-1][0]) > 14:
+                continue
+            left_pts.append([xl, row])
+            right_pts.append([xr, row])
+            anchor_x = 0.5 * (xl + xr)
+
+        if len(left_pts) > 4 and len(right_pts) > 4:
+            return np.array(left_pts), np.array(right_pts)
+        return None, None
+
     def lane_detection(self, state_image_full):
         '''
         Performs the road detection.
@@ -228,11 +266,29 @@ class LaneDetection:
                     lane_boundary1 = self.lane_boundary1_old
                     lane_boundary2 = self.lane_boundary2_old
             else:
+                color_left, color_right = self._extract_road_edges_from_color(state_image_full)
+                if color_left is not None and color_right is not None:
+                    try:
+                        lane_boundary1, _ = splprep([color_left[:, 0], color_left[:, 1]], s=self.spline_smoothness)
+                        lane_boundary2, _ = splprep([color_right[:, 0], color_right[:, 1]], s=self.spline_smoothness)
+                    except Exception:
+                        lane_boundary1 = self.lane_boundary1_old
+                        lane_boundary2 = self.lane_boundary2_old
+                else:
+                    lane_boundary1 = self.lane_boundary1_old
+                    lane_boundary2 = self.lane_boundary2_old
+        else:
+            color_left, color_right = self._extract_road_edges_from_color(state_image_full)
+            if color_left is not None and color_right is not None:
+                try:
+                    lane_boundary1, _ = splprep([color_left[:, 0], color_left[:, 1]], s=self.spline_smoothness)
+                    lane_boundary2, _ = splprep([color_right[:, 0], color_right[:, 1]], s=self.spline_smoothness)
+                except Exception:
+                    lane_boundary1 = self.lane_boundary1_old
+                    lane_boundary2 = self.lane_boundary2_old
+            else:
                 lane_boundary1 = self.lane_boundary1_old
                 lane_boundary2 = self.lane_boundary2_old
-        else:
-            lane_boundary1 = self.lane_boundary1_old
-            lane_boundary2 = self.lane_boundary2_old
 
         self.lane_boundary1_old = lane_boundary1
         self.lane_boundary2_old = lane_boundary2
