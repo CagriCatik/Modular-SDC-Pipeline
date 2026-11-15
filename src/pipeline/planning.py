@@ -17,9 +17,11 @@ class WaypointPlanningModule(PlanningModule):
     num_waypoints: int = 6
     way_type: str = "smooth"
     smoothing_beta: float = 30.0
+    ema_alpha: float = 1.0
+    _prev_waypoints: object = field(init=False, default=None, repr=False)
 
-    def reset(self) -> None:  # pragma: no cover - stateless module
-        pass
+    def reset(self) -> None:
+        self._prev_waypoints = None
 
     def plan(
         self,
@@ -36,6 +38,15 @@ class WaypointPlanningModule(PlanningModule):
             way_type=self.way_type,
             smoothing_beta=self.smoothing_beta,
         )
+        if (
+            self._prev_waypoints is not None
+            and self._prev_waypoints.shape == waypoints.shape
+            and 0.0 < self.ema_alpha < 1.0
+        ):
+            waypoints = (
+                self.ema_alpha * waypoints + (1.0 - self.ema_alpha) * self._prev_waypoints
+            ).astype(waypoints.dtype, copy=False)
+        self._prev_waypoints = waypoints.copy()
         return previous.updated(waypoints=waypoints)
 
 

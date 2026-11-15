@@ -28,7 +28,7 @@ jobs:
           pip install -r docs/requirements.txt
 
       - name: Build documentation site
-        run: mkdocs build
+        run: zensical build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

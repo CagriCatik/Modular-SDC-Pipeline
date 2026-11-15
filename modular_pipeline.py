@@ -15,12 +15,13 @@ from configuration import AppConfig, DEFAULT_CONFIG_PATH, TargetSpeedConfig
 from lane_detection import LaneDetection
 from lateral_control import LateralController
 from longitudinal_control import LongitudinalController
+from mpc_lateral_control import MPCLateralController
 from pipeline import (
     LaneDetectionModule,
-    LiveDashboard,
     LateralControlModule,
     LongitudinalControlModule,
     ModularPipeline,
+    PySideDashboard,
     TargetSpeedPlanningModule,
     WaypointPlanningModule,
 )
@@ -65,13 +66,20 @@ def build_pipeline(
         TargetSpeedPlanningModule(settings=target_speed_settings),
     ]
 
-    lateral_kwargs = config.control.lateral.to_kwargs()
+    if config.control.lateral.controller_type == "mpc":
+        mpc_kwargs = config.control.lateral.to_mpc_kwargs()
+        lateral_module = LateralControlModule(
+            factory=lambda: MPCLateralController(**mpc_kwargs)
+        )
+    else:
+        lateral_kwargs = config.control.lateral.to_kwargs()
+        lateral_module = LateralControlModule(
+            factory=lambda: LateralController(**lateral_kwargs)
+        )
     longitudinal_kwargs = config.control.longitudinal.to_kwargs()
 
     control_modules = [
-        LateralControlModule(
-            factory=lambda: LateralController(**lateral_kwargs)
-        ),
+        lateral_module,
         LongitudinalControlModule(
             factory=lambda: LongitudinalController(**longitudinal_kwargs)
         ),
@@ -83,7 +91,12 @@ def build_pipeline(
     )
     if dashboard_flag:
         observers.append(
-            LiveDashboard(max_history=config.monitoring.dashboard.max_history)
+            PySideDashboard(
+                max_history=config.monitoring.dashboard.max_history,
+                cut_size=config.perception.lane_detection.cut_size,
+                gradient_threshold=config.perception.lane_detection.gradient_threshold,
+                controller_name=config.control.lateral.controller_type.upper(),
+            )
         )
 
     return ModularPipeline(
@@ -111,8 +124,10 @@ def main() -> None:
 
     config = AppConfig.from_file(args.config)
 
+    dashboard_enabled = config.monitoring.dashboard.enabled and not args.no_display
+
     env_kwargs = dict(config.environment.kwargs)
-    if args.no_display:
+    if args.no_display or dashboard_enabled:
         env_kwargs["render_mode"] = "rgb_array"
 
     base_env = gym.make(config.environment.id, **env_kwargs)
@@ -121,7 +136,6 @@ def main() -> None:
         **config.environment.wrapper.to_kwargs(),
     )
 
-    dashboard_enabled = config.monitoring.dashboard.enabled and not args.no_display
     pipeline = build_pipeline(config, env, enable_dashboard=dashboard_enabled)
 
     try:

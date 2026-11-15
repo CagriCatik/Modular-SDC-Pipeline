@@ -33,21 +33,20 @@ flowchart LR
 ## Quick start
 
 ```bash
-python -m venv .venv
+./install_dependencies.sh
 source .venv/bin/activate
-pip install -r requirements.txt
 python modular_pipeline.py --no_display
 ```
 
-Use `--score` to reproduce the leaderboard evaluation protocol.
+Use `--score` to reproduce the leaderboard evaluation protocol, or run `python optimize_pso.py` to tune parameters via Particle Swarm Optimization and export a new YAML configuration and parameter dataset.
 
 All module parameters are driven by `config.yml`. Supply `--config <path>` to
 load an alternative YAML file when experimenting with controller or planner
 settings.
 
 Running `python modular_pipeline.py` without `--no_display` launches the live
-dashboard so you can watch the detected lanes, planned waypoints, and velocity
-tracking behaviour evolve over time.
+PySide6 dashboard so you can watch the detected lanes, planned waypoints, and
+velocity tracking behaviour evolve over time.
 
 ## Documentation map
 

@@ -34,7 +34,8 @@ flowchart TD
 | `planning.waypoints` | Number of waypoints, smoothing beta, and whether to use centreline or smoothed curves. |
 | `planning.target_speed` | Curvature-to-speed mapping (`num_waypoints_used`, `max_speed`, `min_speed`, `curvature_gain`). |
 | `control.lateral` | Stanley controller gains (`gain_constant`, `damping_constant`). |
-| `control.longitudinal` | PID gains, integrator clamp, and actuator saturation. |
+| `control.longitudinal` | PID gains (`KP`, `KI`, `KD`), integrator clamp, and actuator saturation. |
+| `monitoring.dashboard` | Enable flag (`enabled`) and history length (`max_history`) for the PySide6 dashboard. |
 | `evaluation` | Default evaluation episode count and leaderboard seeds. |
 
 ## Example override

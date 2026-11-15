@@ -7,3 +7,4 @@ pyglet<2.0
 pygame>=2.5
 box2d-py==2.3.5
 PyYAML>=6.0
+PySide6-Essentials>=6.7

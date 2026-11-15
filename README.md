@@ -24,16 +24,20 @@ flowchart LR
 
 * **Configuration-first** -- every tunable parameter lives in a YAML file so you can iterate on perception thresholds, waypoint smoothing, and controller gains without touching Python code.
 * **Typed modular pipeline** -- perception, planning, and control stages expose small, composable interfaces that simplify orchestration and testing.
-* **Live observability** -- a Matplotlib dashboard streams lanes, waypoints, velocity, and command histories to speed up debugging sessions.
-* **Scientific documentation** -- MkDocs hosts a single technical reference with derivations and tuning guidelines, published automatically via GitHub Actions.
+* **Live observability** -- a native PySide6 (Qt6) dashboard streams raw observations, detected lanes, planned waypoints, velocity, and command histories in real time.
+* **PSO parameter tuning** -- `optimize_pso.py` uses Particle Swarm Optimization to tune controller, planning, and perception parameters, exporting both an optimized YAML config and a full parameter evaluation dataset.
+* **Scientific documentation** -- Zensical hosts a single technical reference with derivations and tuning guidelines, published automatically via GitHub Actions.
 
 ## Repository layout
 
 | Path                           | Description                                                                                    |
 | ------------------------------ | ---------------------------------------------------------------------------------------------- |
 | `modular_pipeline.py`          | CLI entry point that loads configuration, instantiates modules, and drives the simulator loop. |
+| `optimize_pso.py`              | PSO parameter optimizer that exports an optimized YAML config and parameter dataset.           |
 | `config.yml`                   | Default configuration consumed by the pipeline. Override with `--config` on the CLI.           |
-| `src/pipeline/`                | Core pipeline abstractions, module factories, dashboard implementation, and telemetry helpers. |
+| `zensical.toml`                | Zensical documentation site configuration.                                                     |
+| `src/pipeline/`                | Core pipeline abstractions, module factories, PySide6/Matplotlib dashboards, and telemetry.    |
+| `src/pso_tuner.py`             | Particle Swarm Optimization engine, parameter specs, and YAML/JSON exporters.                  |
 | `src/lane_detection.py`        | Gradient-based lane extractor that returns left/right spline coefficients.                     |
 | `src/waypoint_prediction.py`   | Waypoint generator and curvature-aware target speed estimation.                                |
 | `src/lateral_control.py`       | Stanley controller with damping and reset support.                                             |
@@ -46,15 +50,20 @@ flowchart LR
 
 ### 1. Create a Python environment
 
-The stack targets Python 3.10+.
+The stack targets Python 3.10+ (requires `swig` to build `box2d-py` for `CarRacing-v3`). Run the setup script on macOS or Linux:
+
+```bash
+./install_dependencies.sh
+source .venv/bin/activate
+```
+
+Or manually:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
-
-Optional simulator assets (Gymnasium Box2D) can be installed via the provided PowerShell or Bash helper scripts inside the repository root.
 
 ### 2. Run the modular pipeline
 
@@ -85,16 +94,30 @@ The configuration file mirrors the pipeline structure:
 
 Create multiple YAML files (e.g. `configs/aggressive.yml`) to experiment with alternative behaviours and supply them through `--config`.
 
+### 4. Optimize parameters with PSO
+
+Run Particle Swarm Optimization to tune lateral Stanley gains, longitudinal PID gains, waypoint smoothing, and target speed limits (and optionally perception thresholds with `--include-perception`):
+
+```bash
+python optimize_pso.py --particles 12 --iterations 15 --workers 4 --output configs/pso_best.yaml --dataset-output configs/pso_dataset.json
+```
+
+Pass `--apply` to also write the best parameters back to `config.yml`, or run directly with the generated config:
+
+```bash
+python modular_pipeline.py --config configs/pso_best.yaml
+```
+
 ## Live debugging dashboard
 
-The dashboard attaches to any pipeline execution--including the interactive test scripts under `tests/`--and visualises:
+The PySide6 dashboard attaches to any pipeline execution and visualises:
 
-* raw RGB frame with detected lane splines and planned centreline waypoints,
-* lateral and longitudinal error traces,
-* commanded steering, throttle, and brake signals,
-* reference versus measured velocity.
+* raw RGB frame,
+* detected lane splines and planned centreline waypoints overlaid on the observation,
+* reference versus measured velocity,
+* commanded steering, throttle, and brake signals.
 
-To disable the window (for CI or remote sessions), either pass `--no_display` or set `monitoring.dashboard.enabled` to `false` within the configuration file.
+To disable the window (for CI or remote sessions), either pass `--no_display` or set `monitoring.dashboard.enabled` to `false` within `config.yml`.
 
 ## Testing & validation
 
@@ -112,9 +135,15 @@ python -m compileall src/pipeline
 
 ## Documentation site
 
-MkDocs (Material theme) renders the documentation found in `docs/`. Install the extra dependencies and launch a development server with hot reloading:
+[Zensical](https://zensical.org/) renders the documentation found in `docs/` using `zensical.toml`. Install the extra dependencies and launch a development server with hot reloading:
 
 ```bash
 pip install -r docs/requirements.txt
-mkdocs serve
+zensical serve
+```
+
+To build the static site:
+
+```bash
+zensical build
 ```

@@ -30,14 +30,22 @@ planning:
 
 control:
   lateral:
+    type: mpc
     gain_constant: 0.025
-    damping_constant: 0.0125
+    damping_constant: 0.30
     vehicle_center_x: 48.0
     steering_limit: 0.4
+    horizon: 6
+    wheelbase: 30.0
+    dt: 0.05
+    cte_weight: 1.0
+    heading_weight: 2.0
+    steer_weight: 0.5
+    steer_rate_weight: 3.0
   longitudinal:
     KP: 0.08
     KI: 0.01
-    KD: 0.02
+    KD: 0.001
     integral_windup_limit: 10.0
     max_gas: 0.8
     max_brake: 0.8

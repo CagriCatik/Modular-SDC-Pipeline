@@ -6,9 +6,10 @@ class LateralController:
     def __init__(
         self,
         gain_constant: float = 0.025,
-        damping_constant: float = 0.0125,
+        damping_constant: float = 0.30,
         vehicle_center_x: float = 48.0,
         steering_limit: float = 0.4,
+        max_steer_rate: float = 0.0,
     ) -> None:
         """Create a lateral controller.
 
@@ -17,12 +18,14 @@ class LateralController:
             damping_constant: First-order damping on steering command to reduce jitter.
             vehicle_center_x: Image column that corresponds to the vehicle centre.
             steering_limit: Physical steering bound in radians used for scaling to [-1, 1].
+            max_steer_rate: Maximum steering angle change (rad) per step.
         """
 
         self.gain_constant = float(gain_constant)
         self.damping_constant = float(damping_constant)
         self.vehicle_center_x = float(vehicle_center_x)
         self.steering_limit = float(abs(steering_limit)) if steering_limit != 0 else 0.4
+        self.max_steer_rate = float(abs(max_steer_rate))
         self.previous_steering_angle = 0.0  # radians
 
     def reset(self) -> None:
@@ -72,7 +75,7 @@ class LateralController:
         # Guard: invalid or empty waypoints -> hold previous command
         if not self._valid_waypoints(waypoints):
             prev = float(self.previous_steering_angle)
-            return float(np.clip(prev, -limit, limit) / limit)
+            return -float(np.clip(prev, -limit, limit) / limit)
 
         # Numerical guards
         epsilon = 1e-6
@@ -84,10 +87,11 @@ class LateralController:
 
         vehicle_frame = self._to_vehicle_frame(waypoints)
 
-        # Heading error psi_t from first segment if available
+        # Heading error psi_t over a lookahead span to suppress pixel-quantization noise
         if vehicle_frame.shape[1] >= 2:
-            dx = float(vehicle_frame[0, 1] - vehicle_frame[0, 0])
-            dy = float(vehicle_frame[1, 1] - vehicle_frame[1, 0])
+            lookahead_idx = min(2, vehicle_frame.shape[1] - 1)
+            dx = float(vehicle_frame[0, lookahead_idx] - vehicle_frame[0, 0])
+            dy = float(vehicle_frame[1, lookahead_idx] - vehicle_frame[1, 0])
             path_heading = float(np.arctan2(dy, dx)) if (abs(dx) + abs(dy)) > 0.0 else 0.0
         else:
             path_heading = 0.0
@@ -104,11 +108,19 @@ class LateralController:
         # Stanley control law
         delta_sc = psi_t + np.arctan2(self.gain_constant * d_t, v + epsilon)
 
-        # Damping (discrete first-order filter on delta)
+        # Damping (discrete first-order filter on delta) + slew-rate limiting
         delta = delta_sc - self.damping_constant * (delta_sc - self.previous_steering_angle)
+        if self.max_steer_rate > 0.0:
+            delta = float(
+                np.clip(
+                    delta,
+                    self.previous_steering_angle - self.max_steer_rate,
+                    self.previous_steering_angle + self.max_steer_rate,
+                )
+            )
 
         # Update memory
         self.previous_steering_angle = float(delta)
 
-        # Clip to physical limit, then rescale to [-1, 1]
-        return float(np.clip(delta, -limit, limit) / limit)
+        # Clip to physical limit, then rescale to [-1, 1] and convert to CarRacing sign (+1 = right)
+        return -float(np.clip(delta, -limit, limit) / limit)

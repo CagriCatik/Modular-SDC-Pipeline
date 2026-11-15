@@ -1,0 +1,31 @@
+[project]
+site_name = "Modular SDC Pipeline"
+site_description = "Deterministic reference stack for the CarRacing-v3 simulator"
+site_url = "https://example.com/"
+repo_url = "https://github.com/CagriCatik/Modular-SDC-Pipeline"
+
+nav = [
+    { "Home" = "index.md" },
+    { "Architecture" = "architecture.md" },
+    { "Lane Detection" = "01_Lane-Detection.md" },
+    { "Path Planning" = "02_Path-Planning.md" },
+    { "Lateral Control" = "03_Lateral-Control.md" },
+    { "Longitudinal Control" = "04_Longitudinal-Control.md" },
+    { "Configuration" = "configuration.md" },
+    { "Testing" = "testing.md" },
+    { "Scientific Reference" = "technical_reference.md" },
+]
+
+[project.theme]
+features = [
+    "navigation.expand",
+    "navigation.top",
+    "toc.follow",
+]
+
+[project.markdown_extensions]
+admonition = {}
+codehilite = {}
+"pymdownx.details" = {}
+"pymdownx.superfences" = {}
+"pymdownx.tasklist" = {}

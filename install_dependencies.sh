@@ -1,56 +1,78 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Bash Script to Install Dependencies for Manual Car Driving Script
-# Author: [Your Name]
-# Date: $(date +"%Y-%m-%d")
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$PROJECT_ROOT"
 
-# Exit immediately if a command exits with a non-zero status
-set -e
+echo "Setting up Modular-SDC-Pipeline..."
 
-echo "Starting installation of packages..."
+# 1. Install system dependencies (swig is required to build box2d-py for CarRacing-v3)
+OS="$(uname -s)"
+if [[ "$OS" == "Darwin" ]]; then
+    if ! command -v brew >/dev/null 2>&1; then
+        if [[ -x /opt/homebrew/bin/brew ]]; then
+            export PATH="/opt/homebrew/bin:$PATH"
+        elif [[ -x /usr/local/bin/brew ]]; then
+            export PATH="/usr/local/bin:$PATH"
+        else
+            echo "Error: Homebrew is required on macOS. Install it from https://brew.sh" >&2
+            exit 1
+        fi
+    fi
 
-# Update and upgrade system packages
-echo "Updating system packages..."
-sudo apt-get update
-sudo apt-get upgrade -y
+    if ! command -v swig >/dev/null 2>&1; then
+        echo "Installing swig via Homebrew..."
+        brew install swig
+    fi
+elif [[ "$OS" == "Linux" ]]; then
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "Installing system dependencies via apt-get..."
+        sudo apt-get update
+        sudo apt-get install -y python3-dev python3-pip python3-venv swig libgl1-mesa-glx libglu1-mesa
+    else
+        echo "Warning: apt-get not found. Ensure python3 (>=3.10), venv, and swig are installed."
+    fi
+fi
 
-# Install system dependencies
-echo "Installing system dependencies..."
-sudo apt-get install -y python3-dev python3-pip python3-venv
-sudo apt-get install -y libgl1-mesa-glx libglu1-mesa
-sudo apt-get install -y swig
-sudo apt-get install -y xvfb  # Virtual framebuffer (optional)
+# 2. Locate Python 3.10+
+PYTHON_BIN=""
+for candidate in python3.12 python3.11 python3.10 python3; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+        if "$candidate" -c 'import sys; exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
+            PYTHON_BIN="$(command -v "$candidate")"
+            break
+        fi
+    fi
+done
 
-# Create a virtual environment (optional but recommended)
-echo "Creating a virtual environment..."
-python3 -m venv venv
+if [[ -z "$PYTHON_BIN" ]]; then
+    if [[ "$OS" == "Darwin" ]]; then
+        echo "Python 3.10+ not found. Installing python@3.11 via Homebrew..."
+        brew install python@3.11
+        PYTHON_BIN="$(brew --prefix python@3.11)/bin/python3.11"
+    else
+        echo "Error: Python 3.10+ is required." >&2
+        exit 1
+    fi
+fi
 
-# Activate the virtual environment
-echo "Activating the virtual environment..."
-source venv/bin/activate
+echo "Using Python: $PYTHON_BIN ($("$PYTHON_BIN" --version))"
 
-# Upgrade pip
-echo "Upgrading pip..."
-pip install --upgrade pip
+# 3. Create virtual environment and install dependencies
+if [[ ! -d ".venv" ]]; then
+    echo "Creating virtual environment in .venv..."
+    "$PYTHON_BIN" -m venv .venv
+fi
 
-# Install Python packages
-echo "Installing Python packages..."
-pip install --upgrade numpy
-pip install --upgrade gym[box2d]
-pip install --upgrade pyglet
-pip install --upgrade box2d-py
-pip install --upgrade pygame
+echo "Installing Python dependencies (including Gymnasium Box2D / CarRacing-v3)..."
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/pip install -r requirements.txt pytest
 
-# Deactivate the virtual environment
-echo "Deactivating the virtual environment..."
-deactivate
-
-echo "Installation complete!"
+# 4. Verify CarRacing-v3 environment
+echo "Verifying CarRacing-v3 environment..."
+.venv/bin/python -c 'import gymnasium as gym; env = gym.make("CarRacing-v3", render_mode="rgb_array"); env.reset(seed=0); env.close(); print("CarRacing-v3 ready!")'
 
 echo ""
-echo "To activate the virtual environment, run:"
-echo "source venv/bin/activate"
-echo ""
-echo "Then, to run your script, execute:"
-echo "python manual_car_driving.py"
-
+echo "Setup complete! To run the pipeline:"
+echo "  source .venv/bin/activate"
+echo "  python modular_pipeline.py"

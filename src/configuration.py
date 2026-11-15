@@ -45,19 +45,36 @@ class LaneDetectionConfig:
 
 @dataclass
 class LateralControllerConfig:
+    controller_type: str = "stanley"
     gain_constant: float = 0.025
-    damping_constant: float = 0.0125
+    damping_constant: float = 0.30
     vehicle_center_x: float = 48.0
     steering_limit: float = 0.4
+    horizon: int = 6
+    wheelbase: float = 30.0
+    dt: float = 0.05
+    cte_weight: float = 1.0
+    heading_weight: float = 2.0
+    steer_weight: float = 0.5
+    steer_rate_weight: float = 3.0
 
     @classmethod
     def from_mapping(cls, data: Optional[Mapping[str, Any]]) -> "LateralControllerConfig":
         payload = _as_dict(data)
+        raw_type = str(payload.get("type", payload.get("controller_type", cls.controller_type))).strip().lower()
         return cls(
+            controller_type=raw_type if raw_type in {"stanley", "mpc"} else cls.controller_type,
             gain_constant=float(payload.get("gain_constant", cls.gain_constant)),
             damping_constant=float(payload.get("damping_constant", cls.damping_constant)),
             vehicle_center_x=float(payload.get("vehicle_center_x", cls.vehicle_center_x)),
             steering_limit=float(payload.get("steering_limit", cls.steering_limit)),
+            horizon=int(payload.get("horizon", cls.horizon)),
+            wheelbase=float(payload.get("wheelbase", cls.wheelbase)),
+            dt=float(payload.get("dt", cls.dt)),
+            cte_weight=float(payload.get("cte_weight", cls.cte_weight)),
+            heading_weight=float(payload.get("heading_weight", cls.heading_weight)),
+            steer_weight=float(payload.get("steer_weight", cls.steer_weight)),
+            steer_rate_weight=float(payload.get("steer_rate_weight", cls.steer_rate_weight)),
         )
 
     def to_kwargs(self) -> Dict[str, Any]:
@@ -68,12 +85,25 @@ class LateralControllerConfig:
             "steering_limit": self.steering_limit,
         }
 
+    def to_mpc_kwargs(self) -> Dict[str, Any]:
+        return {
+            "vehicle_center_x": self.vehicle_center_x,
+            "steering_limit": self.steering_limit,
+            "horizon": self.horizon,
+            "wheelbase": self.wheelbase,
+            "dt": self.dt,
+            "cte_weight": self.cte_weight,
+            "heading_weight": self.heading_weight,
+            "steer_weight": self.steer_weight,
+            "steer_rate_weight": self.steer_rate_weight,
+        }
+
 
 @dataclass
 class LongitudinalControllerConfig:
     KP: float = 0.08
     KI: float = 0.01
-    KD: float = 0.02
+    KD: float = 0.001
     integral_windup_limit: float = 10.0
     max_gas: float = 0.8
     max_brake: float = 0.8
@@ -185,13 +215,16 @@ class ControlConfig:
 class DashboardConfig:
     enabled: bool = False
     max_history: int = 200
+    backend: str = "pyside"
 
     @classmethod
     def from_mapping(cls, data: Optional[Mapping[str, Any]]) -> "DashboardConfig":
         payload = _as_dict(data)
+        backend = str(payload.get("backend", cls.backend)).strip().lower()
         return cls(
             enabled=bool(payload.get("enabled", cls.enabled)),
             max_history=int(payload.get("max_history", cls.max_history)),
+            backend=backend if backend else cls.backend,
         )
 
 

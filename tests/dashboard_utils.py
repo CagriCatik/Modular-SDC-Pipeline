@@ -11,7 +11,7 @@ from configuration import AppConfig, DEFAULT_CONFIG_PATH
 from pipeline import (
     ControlCommand,
     DashboardInputs,
-    LiveDashboard,
+    PySideDashboard,
     build_observer_step,
     make_lane_detections,
 )
@@ -36,21 +36,24 @@ def create_env(config: AppConfig, *, render_mode: Optional[str] = None) -> SDC_W
     return SDC_Wrapper(base_env, **config.environment.wrapper.to_kwargs())
 
 
-def create_dashboard(config: AppConfig, *, enabled: bool = True) -> Optional[LiveDashboard]:
-    """Instantiate :class:`LiveDashboard` if ``enabled`` is ``True``."""
+def create_dashboard(config: AppConfig, *, enabled: bool = True) -> Optional[PySideDashboard]:
+    """Instantiate :class:`PySideDashboard` if ``enabled`` is ``True``."""
 
     if not enabled or not config.monitoring.dashboard.enabled:
         return None
 
     try:
-        return LiveDashboard(max_history=config.monitoring.dashboard.max_history)
+        return PySideDashboard(
+            max_history=config.monitoring.dashboard.max_history,
+            cut_size=config.perception.lane_detection.cut_size,
+        )
     except RuntimeError as exc:
         print(f"Live dashboard unavailable: {exc}")
         return None
 
 
 def reset_dashboard(
-    dashboard: Optional[LiveDashboard],
+    dashboard: Optional[PySideDashboard],
     observation: np.ndarray,
     info: Mapping[str, Any],
 ) -> None:
@@ -59,7 +62,7 @@ def reset_dashboard(
 
 
 def update_dashboard(
-    dashboard: Optional[LiveDashboard],
+    dashboard: Optional[PySideDashboard],
     *,
     observation: np.ndarray,
     action: np.ndarray,

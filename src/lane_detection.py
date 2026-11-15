@@ -85,6 +85,8 @@ class LaneDetection:
             peaks, _ = find_peaks(row, distance=self.distance_maxima_gradient)
             for col_index in peaks:
                 maxima_list.append([col_index, row_index])
+        if not maxima_list:
+            return np.empty((2, 0), dtype=int)
         # Convert to numpy array and transpose to get shape (2, Number of maxima)
         argmaxima = np.array(maxima_list).T
         return argmaxima
@@ -101,16 +103,19 @@ class LaneDetection:
         '''
         lanes_found = False
         row = 0
+        single_peak_fallback = None
+        car_x = float(self.car_position[0])
 
-        # Loop through the rows
+        # Loop through the rows to find a pair of left/right peaks
         while not lanes_found and row < self.cut_size:
-            # Find peaks with minimum distance
-            argmaxima = find_peaks(gradient_sum[row, :, 0], distance=3)[0]
+            argmaxima = find_peaks(gradient_sum[row, :, 0], distance=self.distance_maxima_gradient)[0]
 
-            if argmaxima.shape[0] == 1:
-                lane_boundary1_startpoint = np.array([[argmaxima[0], row]])
-                lane_boundary2_startpoint = np.array([[0 if argmaxima[0] >= 48 else 95, row]])
-                lanes_found = True
+            if argmaxima.shape[0] == 1 and single_peak_fallback is None:
+                p0 = argmaxima[0]
+                single_peak_fallback = (
+                    np.array([[p0, row]]),
+                    np.array([[0 if p0 >= car_x else 95, row]]),
+                )
 
             elif argmaxima.shape[0] == 2:
                 lane_boundary1_startpoint = np.array([[argmaxima[0], row]])
@@ -118,17 +123,29 @@ class LaneDetection:
                 lanes_found = True
 
             elif argmaxima.shape[0] > 2:
-                A = np.argsort((argmaxima - self.car_position[0])**2)
-                lane_boundary1_startpoint = np.array([[argmaxima[A[0]], row]])
-                lane_boundary2_startpoint = np.array([[argmaxima[A[1]], row]])
+                left_peaks = argmaxima[argmaxima <= car_x]
+                right_peaks = argmaxima[argmaxima > car_x]
+                if left_peaks.size > 0 and right_peaks.size > 0:
+                    p_left = left_peaks[int(np.argmax(left_peaks))]
+                    p_right = right_peaks[int(np.argmin(right_peaks))]
+                    lane_boundary1_startpoint = np.array([[p_left, row]])
+                    lane_boundary2_startpoint = np.array([[p_right, row]])
+                else:
+                    A = np.argsort((argmaxima - car_x) ** 2)
+                    p1, p2 = sorted((int(argmaxima[A[0]]), int(argmaxima[A[1]])))
+                    lane_boundary1_startpoint = np.array([[p1, row]])
+                    lane_boundary2_startpoint = np.array([[p2, row]])
                 lanes_found = True
 
             row += 1
 
-            if row == self.cut_size:
+        if not lanes_found:
+            if single_peak_fallback is not None:
+                lane_boundary1_startpoint, lane_boundary2_startpoint = single_peak_fallback
+                lanes_found = True
+            else:
                 lane_boundary1_startpoint = np.array([[0, 0]])
                 lane_boundary2_startpoint = np.array([[0, 0]])
-                break
 
         return lane_boundary1_startpoint, lane_boundary2_startpoint, lanes_found
 
@@ -167,26 +184,29 @@ class LaneDetection:
 
 
             # Function to find lane points
-            def find_lane_points(lane_points):
+            def find_lane_points(lane_points, max_row_gap=3, max_x_jump=12):
                 last_point = lane_points[-1]
-                while True:
-                    next_row = last_point[1] + 1
-                    if next_row >= self.cut_size:
-                        break
-                    # Get maxima in the next row
+                next_row = last_point[1] + 1
+                gap = 0
+                while next_row < self.cut_size and gap <= max_row_gap:
                     maxima_in_row = [p for p in maxima_list if p[1] == next_row]
                     if not maxima_in_row:
-                        break
-                    # Find the maximum with the lowest distance to the last lane point
+                        gap += 1
+                        next_row += 1
+                        continue
                     distances = [abs(p[0] - last_point[0]) for p in maxima_in_row]
                     min_distance = min(distances)
-                    if min_distance >= 100:
-                        break
+                    if min_distance > max_x_jump:
+                        gap += 1
+                        next_row += 1
+                        continue
                     min_index = distances.index(min_distance)
                     next_point = maxima_in_row[min_index]
                     lane_points.append(next_point)
                     maxima_list.remove(next_point)
                     last_point = next_point
+                    gap = 0
+                    next_row += 1
                 return lane_points
 
             # Find lane boundary points
@@ -199,12 +219,14 @@ class LaneDetection:
 
             # Spline fitting using scipy.interpolate.splprep
             if lane_boundary1_points.shape[0] > 4 and lane_boundary2_points.shape[0] > 4:
-                # Lane boundary 1
-                tck1, _ = splprep([lane_boundary1_points[:, 0], lane_boundary1_points[:, 1]], s=self.spline_smoothness)
-                lane_boundary1 = tck1
-                # Lane boundary 2
-                tck2, _ = splprep([lane_boundary2_points[:, 0], lane_boundary2_points[:, 1]], s=self.spline_smoothness)
-                lane_boundary2 = tck2
+                try:
+                    tck1, _ = splprep([lane_boundary1_points[:, 0], lane_boundary1_points[:, 1]], s=self.spline_smoothness)
+                    tck2, _ = splprep([lane_boundary2_points[:, 0], lane_boundary2_points[:, 1]], s=self.spline_smoothness)
+                    lane_boundary1 = tck1
+                    lane_boundary2 = tck2
+                except Exception:
+                    lane_boundary1 = self.lane_boundary1_old
+                    lane_boundary2 = self.lane_boundary2_old
             else:
                 lane_boundary1 = self.lane_boundary1_old
                 lane_boundary2 = self.lane_boundary2_old

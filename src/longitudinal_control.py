@@ -17,7 +17,7 @@ class LongitudinalController:
         self,
         KP: float = 0.08,
         KI: float = 0.01,
-        KD: float = 0.02,
+        KD: float = 0.001,
         integral_windup_limit: float = 10.0,
         max_gas: float = 0.8,
         max_brake: float = 0.8,
@@ -32,6 +32,7 @@ class LongitudinalController:
         self.default_dt = float(default_dt)
 
         self.last_error: float = 0.0
+        self.last_speed: Optional[float] = None
         self.sum_error: float = 0.0
         self.last_control: float = 0.0
         self.speed_history: list[float] = []
@@ -46,6 +47,7 @@ class LongitudinalController:
         """Clear controller state before a new episode."""
 
         self.last_error = 0.0
+        self.last_speed = None
         self.sum_error = 0.0
         self.last_control = 0.0
         self.speed_history.clear()
@@ -71,7 +73,8 @@ class LongitudinalController:
         dt_value = self.default_dt if dt is None else float(dt)
         dt_value = max(dt_value, 1e-3)  # guard against division by zero
 
-        error = float(target_speed) - float(speed)
+        speed_value = float(speed)
+        error = float(target_speed) - speed_value
 
         # Proportional
         p_term = self.KP * error
@@ -83,11 +86,15 @@ class LongitudinalController:
         )
         i_term = self.KI * self.sum_error
 
-        # Derivative (difference quotient)
-        d_term = self.KD * (error - self.last_error) / dt_value
+        # Derivative on measurement to avoid target-speed step kicks
+        if self.last_speed is None:
+            d_term = 0.0
+        else:
+            d_term = -self.KD * (speed_value - self.last_speed) / dt_value
 
         control = p_term + i_term + d_term
         self.last_error = error
+        self.last_speed = speed_value
         self.last_control = control
         return float(control)
 
